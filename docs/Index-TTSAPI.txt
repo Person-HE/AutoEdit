@@ -1,0 +1,331 @@
+API documentation
+http://127.0.0.1:7860/
+
+API Recorder
+
+7 API endpoints
+
+
+Choose one of the following ways to interact with the API.
+
+1. Install the python client (docs) if you don't already have it installed.
+
+copy
+$ pip install gradio_client
+2. Find the API endpoint below corresponding to your desired function in the app. Copy the code snippet, replacing the placeholder values with your own input data. Or use the 
+API Recorder
+
+ to automatically generate your API requests.
+
+API name: /on_example_click
+copy
+from gradio_client import Client
+
+	client = Client("http://127.0.0.1:7860/")
+	result = client.predict(
+			example=0,
+			api_name="/on_example_click"
+	)
+	print(result)
+Accepts 1 parameter:
+example int Required
+
+The input value that is provided in the "Examples" Dataset component.
+
+Returns tuple of 14 elements
+[0] filepath
+
+The output value that appears in the "音色参考音频" Audio component.
+
+[1] Literal['与音色参考音频相同', '使用情感参考音频', '使用情感向量控制']
+
+The output value that appears in the "情感控制方式" Radio component.
+
+[2] str
+
+The output value that appears in the "文本" Textbox component.
+
+[3] filepath
+
+The output value that appears in the "上传情感参考音频" Audio component.
+
+[4] float
+
+The output value that appears in the "情感权重" Slider component.
+
+[5] str
+
+The output value that appears in the "情感描述文本" Textbox component.
+
+[6] float
+
+The output value that appears in the "喜" Slider component.
+
+[7] float
+
+The output value that appears in the "怒" Slider component.
+
+[8] float
+
+The output value that appears in the "哀" Slider component.
+
+[9] float
+
+The output value that appears in the "惧" Slider component.
+
+[10] float
+
+The output value that appears in the "厌恶" Slider component.
+
+[11] float
+
+The output value that appears in the "低落" Slider component.
+
+[12] float
+
+The output value that appears in the "惊喜" Slider component.
+
+[13] float
+
+The output value that appears in the "平静" Slider component.
+
+API name: /on_method_change
+copy
+from gradio_client import Client
+
+	client = Client("http://127.0.0.1:7860/")
+	result = client.predict(
+			emo_control_method="与音色参考音频相同",
+			api_name="/on_method_change"
+	)
+	print(result)
+Accepts 1 parameter:
+emo_control_method Literal['与音色参考音频相同', '使用情感参考音频', '使用情感向量控制'] Default: "与音色参考音频相同"
+
+The input value that is provided in the "情感控制方式" Radio component.
+
+Returns 1 element
+API name: /on_experimental_change
+copy
+from gradio_client import Client
+
+	client = Client("http://127.0.0.1:7860/")
+	result = client.predict(
+			is_experimental=False,
+			current_mode_index="与音色参考音频相同",
+			api_name="/on_experimental_change"
+	)
+	print(result)
+Accepts 2 parameters:
+is_experimental bool Default: False
+
+The input value that is provided in the "显示实验功能" Checkbox component.
+
+current_mode_index Literal['与音色参考音频相同', '使用情感参考音频', '使用情感向量控制'] Default: "与音色参考音频相同"
+
+The input value that is provided in the "情感控制方式" Radio component.
+
+Returns tuple of 2 elements
+[0] Literal['与音色参考音频相同', '使用情感参考音频', '使用情感向量控制']
+
+The output value that appears in the "情感控制方式" Radio component.
+
+[1] int
+
+The output value that appears in the "Examples" Dataset component.
+
+API name: /on_input_text_change
+copy
+from gradio_client import Client
+
+	client = Client("http://127.0.0.1:7860/")
+	result = client.predict(
+			text="Hello!!",
+			max_text_tokens_per_segment=120,
+			api_name="/on_input_text_change"
+	)
+	print(result)
+Accepts 2 parameters:
+text str Required
+
+The input value that is provided in the "文本" Textbox component.
+
+max_text_tokens_per_segment float Default: 120
+
+The input value that is provided in the "分句最大Token数" Slider component.
+
+Returns 1 element
+dict(headers: list[Any], data: list[list[Any]], metadata: dict(str, list[Any] | None) | None)
+
+The output value that appears in the "value_69" Dataframe component.
+
+API name: /on_input_text_change_1
+copy
+from gradio_client import Client
+
+	client = Client("http://127.0.0.1:7860/")
+	result = client.predict(
+			text="Hello!!",
+			max_text_tokens_per_segment=120,
+			api_name="/on_input_text_change_1"
+	)
+	print(result)
+Accepts 2 parameters:
+text str Required
+
+The input value that is provided in the "文本" Textbox component.
+
+max_text_tokens_per_segment float Default: 120
+
+The input value that is provided in the "分句最大Token数" Slider component.
+
+Returns 1 element
+dict(headers: list[Any], data: list[list[Any]], metadata: dict(str, list[Any] | None) | None)
+
+The output value that appears in the "value_69" Dataframe component.
+
+API name: /update_prompt_audio
+copy
+from gradio_client import Client
+
+	client = Client("http://127.0.0.1:7860/")
+	result = client.predict(
+			api_name="/update_prompt_audio"
+	)
+	print(result)
+Accepts 0 parameters:
+Returns 1 element
+API name: /gen_single
+copy
+from gradio_client import Client, handle_file
+
+	client = Client("http://127.0.0.1:7860/")
+	result = client.predict(
+			emo_control_method="与音色参考音频相同",
+			prompt=handle_file('https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav'),
+			text="Hello!!",
+			emo_ref_path=handle_file('https://github.com/gradio-app/gradio/raw/main/test/test_files/audio_sample.wav'),
+			emo_weight=0.65,
+			vec1=0,
+			vec2=0,
+			vec3=0,
+			vec4=0,
+			vec5=0,
+			vec6=0,
+			vec7=0,
+			vec8=0,
+			emo_text="",
+			emo_random=False,
+			max_text_tokens_per_segment=120,
+			param_16=True,
+			param_17=0.8,
+			param_18=30,
+			param_19=0.8,
+			param_20=0,
+			param_21=3,
+			param_22=10,
+			param_23=1500,
+			api_name="/gen_single"
+	)
+	print(result)
+Accepts 24 parameters:
+emo_control_method Literal['与音色参考音频相同', '使用情感参考音频', '使用情感向量控制'] Default: "与音色参考音频相同"
+
+The input value that is provided in the "情感控制方式" Radio component.
+
+prompt filepath Required
+
+The input value that is provided in the "音色参考音频" Audio component. The FileData class is a subclass of the GradioModel class that represents a file object within a Gradio interface. It is used to store file data and metadata when a file is uploaded. Attributes: path: The server file path where the file is stored. url: The normalized server URL pointing to the file. size: The size of the file in bytes. orig_name: The original filename before upload. mime_type: The MIME type of the file. is_stream: Indicates whether the file is a stream. meta: Additional metadata used internally (should not be changed).
+
+text str Required
+
+The input value that is provided in the "文本" Textbox component.
+
+emo_ref_path filepath Required
+
+The input value that is provided in the "上传情感参考音频" Audio component. The FileData class is a subclass of the GradioModel class that represents a file object within a Gradio interface. It is used to store file data and metadata when a file is uploaded. Attributes: path: The server file path where the file is stored. url: The normalized server URL pointing to the file. size: The size of the file in bytes. orig_name: The original filename before upload. mime_type: The MIME type of the file. is_stream: Indicates whether the file is a stream. meta: Additional metadata used internally (should not be changed).
+
+emo_weight float Default: 0.65
+
+The input value that is provided in the "情感权重" Slider component.
+
+vec1 float Default: 0
+
+The input value that is provided in the "喜" Slider component.
+
+vec2 float Default: 0
+
+The input value that is provided in the "怒" Slider component.
+
+vec3 float Default: 0
+
+The input value that is provided in the "哀" Slider component.
+
+vec4 float Default: 0
+
+The input value that is provided in the "惧" Slider component.
+
+vec5 float Default: 0
+
+The input value that is provided in the "厌恶" Slider component.
+
+vec6 float Default: 0
+
+The input value that is provided in the "低落" Slider component.
+
+vec7 float Default: 0
+
+The input value that is provided in the "惊喜" Slider component.
+
+vec8 float Default: 0
+
+The input value that is provided in the "平静" Slider component.
+
+emo_text str Default: ""
+
+The input value that is provided in the "情感描述文本" Textbox component.
+
+emo_random bool Default: False
+
+The input value that is provided in the "情感随机采样" Checkbox component.
+
+max_text_tokens_per_segment float Default: 120
+
+The input value that is provided in the "分句最大Token数" Slider component.
+
+param_16 bool Default: True
+
+The input value that is provided in the "do_sample" Checkbox component.
+
+param_17 float Default: 0.8
+
+The input value that is provided in the "top_p" Slider component.
+
+param_18 float Default: 30
+
+The input value that is provided in the "top_k" Slider component.
+
+param_19 float Default: 0.8
+
+The input value that is provided in the "temperature" Slider component.
+
+param_20 float Default: 0
+
+The input value that is provided in the "length_penalty" Number component.
+
+param_21 float Default: 3
+
+The input value that is provided in the "num_beams" Slider component.
+
+param_22 float Default: 10
+
+The input value that is provided in the "repetition_penalty" Number component.
+
+param_23 float Default: 1500
+
+The input value that is provided in the "max_mel_tokens" Slider component.
+
+Returns 1 element
+filepath
+
+The output value that appears in the "生成结果" Audio component.

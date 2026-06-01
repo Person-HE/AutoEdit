@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NanoEdit Pro - 专业云端剪辑</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                500: '#2997FF', // primary: Electric Blue
+                600: '#007AFF', // hover state
+              },
+              bg: {
+                base: '#121212',    // Deep Dark
+                surface: '#1E1E24', // Panel BG with slight blue tint
+              },
+              gray: {
+                800: '#1E1E24', 
+                900: '#121212',
+                700: '#2C2C35', // Lighter border
+                400: '#A1A1AA', // Muted text
+              }
+            },
+            boxShadow: {
+              'glass': '0 4px 20px -1px rgba(0, 0, 0, 0.3)',
+              'glow': '0 0 15px rgba(41, 151, 255, 0.3)',
+              'inner-light': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
+            },
+            borderRadius: {
+              '2xl': '16px',
+            },
+            fontSize: {
+              '11px': '11px',
+              '13px': '13px',
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.3s ease-out',
+              'scale-in': 'scaleIn 0.2s ease-out',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              scaleIn: {
+                '0%': { transform: 'scale(0.95)', opacity: '0' },
+                '100%': { transform: 'scale(1)', opacity: '1' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.0.0",
+    "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
+    "react-dom": "https://esm.sh/react-dom@19.0.0?deps=react@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client?deps=react@19.0.0",
+    "dexie": "https://esm.sh/dexie@3.2.4",
+    "zustand": "https://esm.sh/zustand@4.5.0?deps=react@19.0.0",
+    "uuid": "https://esm.sh/uuid@9.0.1",
+    "clsx": "https://esm.sh/clsx@2.1.0",
+    "tailwind-merge": "https://esm.sh/tailwind-merge@2.2.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/"
+  }
+}
+</script>
+    <style>
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #121212;
+      }
+      
+      /* 伪磨砂面板 (Fake Glass) - 高性能 */
+      .glass-panel {
+        background-color: #1E1E24;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px -1px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+        overflow: hidden;
+      }
+
+      /* 真磨砂浮层 (Real Glass) - 用于弹窗/浮动条 */
+      .glass-modal {
+        background-color: rgba(30, 30, 36, 0.75);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+
+      /* 主按钮 */
+      .btn-primary {
+        background-color: #2997FF;
+        color: white;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 10px rgba(41, 151, 255, 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+      }
+      .btn-primary:hover {
+        background-color: #1a85ff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(41, 151, 255, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+      }
+      .btn-primary:active {
+        transform: scale(0.96);
+      }
+
+      /* 玻璃态输入框 */
+      .input-glass {
+        background-color: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: 6px;
+        transition: all 0.2s;
+      }
+      .input-glass:focus {
+        border-color: #2997FF;
+        background-color: rgba(0, 0, 0, 0.4);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(41, 151, 255, 0.2);
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+    </style>
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-bg-base text-white h-screen w-screen overflow-hidden select-none text-[13px]">
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+</body>
+</html>

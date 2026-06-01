@@ -1,0 +1,1 @@
+﻿src/modules/ai-director/services/AIService.ts(382,29): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
