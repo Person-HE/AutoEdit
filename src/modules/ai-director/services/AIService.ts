@@ -31,17 +31,62 @@ const DEFAULT_CONFIG = {
   timeout: 60000,
 };
 
+const STORAGE_KEY = 'nanoedit_ai_config';
+
+function loadConfigFromStorage(): AIServiceConfig | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Failed to load AI config from storage:', e);
+  }
+  return null;
+}
+
+function saveConfigToStorage(config: AIServiceConfig): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  } catch (e) {
+    console.error('Failed to save AI config to storage:', e);
+  }
+}
+
+function getDefaultConfig(): AIServiceConfig {
+  const userConfig = loadConfigFromStorage();
+  if (userConfig && userConfig.providers && userConfig.providers.length > 0) {
+    return userConfig;
+  }
+
+  return {
+    providers: [
+      {
+        id: 'nvidia',
+        name: 'NVIDIA NIM',
+        endpoint: import.meta.env.DEV
+          ? '/api/nvidia/v1/chat/completions'
+          : 'https://integrate.api.nvidia.com/v1/chat/completions',
+        apiKey: '',
+        model: 'meta/llama-3.3-70b-instruct',
+      },
+    ],
+    defaultProviderId: 'nvidia',
+  };
+}
+
 class AIService {
   private config: AIServiceConfig & typeof DEFAULT_CONFIG;
   private defaultProviderId: string;
 
-  constructor(config: AIServiceConfig) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
-    if (!config.providers || config.providers.length === 0) {
+  constructor(config?: AIServiceConfig) {
+    const initialConfig = config || getDefaultConfig();
+    this.config = { ...DEFAULT_CONFIG, ...initialConfig };
+    if (!this.config.providers || this.config.providers.length === 0) {
       throw new Error('AIService: 至少需要配置一个 AI 提供商');
     }
     this.defaultProviderId =
-      config.defaultProviderId || config.providers[0].id;
+      this.config.defaultProviderId || this.config.providers[0].id;
   }
 
   get providers(): AIProviderConfig[] {
@@ -64,6 +109,38 @@ class AIService {
       throw new Error(`AIService: 未找到 id="${id}" 的提供商`);
     }
     this.defaultProviderId = id;
+    this.config.defaultProviderId = id;
+    saveConfigToStorage(this.config);
+  }
+
+  addProvider(provider: AIProviderConfig): void {
+    const exists = this.config.providers.some((p) => p.id === provider.id);
+    if (exists) {
+      throw new Error(`AIService: 已存在 id="${provider.id}" 的提供商`);
+    }
+    this.config.providers.push(provider);
+    saveConfigToStorage(this.config);
+  }
+
+  updateProvider(id: string, updates: Partial<AIProviderConfig>): void {
+    const index = this.config.providers.findIndex((p) => p.id === id);
+    if (index === -1) {
+      throw new Error(`AIService: 未找到 id="${id}" 的提供商`);
+    }
+    this.config.providers[index] = { ...this.config.providers[index], ...updates };
+    saveConfigToStorage(this.config);
+  }
+
+  removeProvider(id: string): void {
+    if (this.config.providers.length <= 1) {
+      throw new Error('AIService: 至少保留一个 AI 提供商');
+    }
+    this.config.providers = this.config.providers.filter((p) => p.id !== id);
+    if (this.defaultProviderId === id) {
+      this.defaultProviderId = this.config.providers[0].id;
+      this.config.defaultProviderId = this.defaultProviderId;
+    }
+    saveConfigToStorage(this.config);
   }
 
   private async callAIRaw(
@@ -131,6 +208,11 @@ class AIService {
     if (!provider) {
       throw new Error(
         `AIService: 未找到 id="${targetId}" 的提供商`
+      );
+    }
+    if (!provider.apiKey) {
+      throw new Error(
+        `AIService: 提供商 "${provider.name}" 未配置 API Key，请在设置中配置`
       );
     }
     return this.callAIRaw(messages, options || {}, provider);
@@ -374,22 +456,7 @@ class AIService {
   }
 }
 
-const defaultConfig: AIServiceConfig = {
-  providers: [
-    {
-      id: 'nvidia',
-      name: 'NVIDIA NIM',
-      endpoint: import.meta.env.DEV
-        ? '/api/nvidia/v1/chat/completions'
-        : 'https://integrate.api.nvidia.com/v1/chat/completions',
-      apiKey: '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',
-      model: 'meta/llama-3.3-70b-instruct',
-    },
-  ],
-  defaultProviderId: 'nvidia',
-};
-
-export const aiService = new AIService(defaultConfig);
+export const aiService = new AIService();
 
 export { AIService };
 export default aiService;

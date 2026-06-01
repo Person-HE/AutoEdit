@@ -35,17 +35,43 @@ export const DEFAULT_TTS_CONFIG: TTSConfig = {
   emoWeight: 0.65,
 };
 
-const TTS_PROXY_URL = (import.meta as any).env?.VITE_TTS_PROXY_URL || 'http://127.0.0.1:8001';
+const STORAGE_KEY = 'nanoedit_tts_config';
+
+function loadTTSConfig(): { proxyUrl: string } {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Failed to load TTS config:', e);
+  }
+  return { proxyUrl: 'http://127.0.0.1:8001' };
+}
+
+function saveTTSConfig(config: { proxyUrl: string }): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  } catch (e) {
+    console.error('Failed to save TTS config:', e);
+  }
+}
 
 class IndexTTSService {
   private proxyUrl: string;
 
   constructor() {
-    this.proxyUrl = TTS_PROXY_URL;
+    const config = loadTTSConfig();
+    this.proxyUrl = config.proxyUrl;
   }
 
   getProxyUrl(): string {
     return this.proxyUrl;
+  }
+
+  setProxyUrl(url: string): void {
+    this.proxyUrl = url;
+    saveTTSConfig({ proxyUrl: url });
   }
 
   /**
@@ -257,9 +283,6 @@ class IndexTTSService {
     }
   }
 
-  setProxyUrl(url: string): void {
-    this.proxyUrl = url;
-  }
 }
 
 export const indexTTSService = new IndexTTSService();
