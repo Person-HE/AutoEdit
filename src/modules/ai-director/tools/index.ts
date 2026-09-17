@@ -10,6 +10,8 @@ import { promptGeneratorTool } from './PromptGeneratorTool';
 import { shotGeneratorTool } from './ShotGeneratorTool';
 import { textProcessorTool } from './TextProcessorTool';
 import { generateAssetTool } from './GenerateAssetTool';
+import { contentDesignTool } from './ContentDesignTool';
+import { viralChecklistTool } from './ViralChecklistTool';
 
 // 添加类工具
 import { addClipTool } from './AddClipTool';
@@ -42,6 +44,8 @@ toolSystem.register(promptGeneratorTool);
 toolSystem.register(shotGeneratorTool);
 toolSystem.register(textProcessorTool);
 toolSystem.register(generateAssetTool);
+toolSystem.register(contentDesignTool);
+toolSystem.register(viralChecklistTool);
 
 toolSystem.register(addClipTool);
 toolSystem.register(addAssetTool);
@@ -73,6 +77,8 @@ export {
   shotGeneratorTool,
   textProcessorTool,
   generateAssetTool,
+  contentDesignTool,
+  viralChecklistTool,
   addClipTool,
   addAssetTool,
   useAssetTool,

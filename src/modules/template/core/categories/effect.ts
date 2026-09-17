@@ -1,12 +1,7 @@
 export {
-  particleExplosionTemplate,
-  haloExpandTemplate,
-  energyRingTemplate,
-  shockwaveTemplate,
-  magicCircleTemplate,
-  dataStreamTemplate,
-  codeRainTemplate,
-  matrixTemplate,
-  fireTemplate,
-  smokeTemplate,
+  screenGlitchTemplate,
+  shockwaveBurstTemplate,
+  energyFieldTemplate,
+  chromaticGlowTemplate,
+  neonScanlinesTemplate,
 } from '../../../../engine/templates';

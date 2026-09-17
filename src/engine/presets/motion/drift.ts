@@ -1,31 +1,34 @@
 import { PresetDefinition } from '../types';
-import { momentumEase } from '../../utils/easing';
+import { dampedOscillation } from '../../utils/easing';
 
 export const drift: PresetDefinition = {
   id: 'motion_drift',
-  name: '漂移 (Drift)',
+  name: '缓慢漂移 (Slow Drift)',
+  description: '背景层级的缓慢漂移，制造空间深度',
   category: 'motion',
+  quality: 'viral',
+  mood: 'calm',
+  material: 'hologram',
+  dimensions: { materialOptics: true, physicsMotion: true, spatialDepth: true, styleEmotion: true },
+  physics: ['dampedOscillation'],
   schema: [
-    { key: 'distance', label: '距离', type: 'number', default: 100, min: 10, max: 500, step: 10 },
-    { key: 'direction', label: '方向', type: 'number', default: 45, min: 0, max: 360, step: 15 }
+    { key: 'distance', label: '漂移距离', type: 'number', default: 60, min: 0, max: 300 },
   ],
   apply: (progress, params, currentTransform) => {
-    const distance = Math.max(10, Math.min(500, params.distance || 100));
-    const direction = Math.max(0, Math.min(360, params.direction || 45));
-    const p = Math.max(0, Math.min(1, progress));
+    const distance = Math.max(0, Math.min(300, params.distance || 60));
+    const t = Math.max(0, Math.min(1, progress));
 
-    const eased = momentumEase(p, 1, 0.3);
-    const angleRad = (direction * Math.PI) / 180;
-    const xOffset = Math.cos(angleRad) * distance * eased;
-    const yOffset = Math.sin(angleRad) * distance * eased;
+    const x = Math.sin(t * Math.PI * 2) * distance;
+    const y = Math.cos(t * Math.PI * 1.3) * distance * 0.4;
 
     return {
       transform: {
         ...currentTransform,
-        x: currentTransform.x + xOffset,
-        y: currentTransform.y + yOffset
+        x: currentTransform.x + x,
+        y: currentTransform.y + y,
       },
-      opacity: 1
+      opacity: 1,
+      filter: 'blur(0px) brightness(1.05)'
     };
   }
 };

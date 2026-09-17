@@ -6,6 +6,7 @@ import { comfyUIService, ImageGenConfig } from '../../services/comfyUIService';
 import { PRESETS, registerPreset, getPresetCategories } from '../../engine/presets';
 import { PresetDefinition } from '../../engine/presets/types';
 import { DrawingBoard } from './DrawingBoard';
+import { VirtualGrid, VirtualList } from '../common/VirtualList';
 import clsx from 'clsx';
 import type { Asset } from '../../types/core';
 import { useAssetStore } from '../../modules/asset/useAssetStore';
@@ -23,7 +24,7 @@ const AssetGridItem = memo(({ asset, onDragStart, onContextMenu, isFixed }: {
     onDragStart={(e) => onDragStart(e, asset.id, asset.type)}
     onContextMenu={(e) => onContextMenu(e, asset.id)}
     className={clsx(
-      "aspect-square bg-black/20 rounded-lg border overflow-hidden relative group cursor-grab active:cursor-grabbing hover:border-brand-500/50 transition-colors",
+      "aspect-square bg-black/20 rounded-lg border overflow-hidden relative group cursor-grab active:cursor-grabbing hover:border-brand-500/50 transition-colors w-full h-full",
       isFixed ? "border-blue-500/20" : "border-white/5"
     )}
   >
@@ -37,26 +38,46 @@ const AssetGridItem = memo(({ asset, onDragStart, onContextMenu, isFixed }: {
         />
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 gap-1">
-          <span className="text-xl">{asset.type === 'image' ? '🖼️' : '🎥'}</span>
+          {asset.type === 'image' ? (
+            <svg className="shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+          ) : (
+            <svg className="shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          )}
           <span className="text-[10px]">{asset.name}</span>
         </div>
       )
     ) : (
       <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 gap-1">
-        <span className="text-xl">{asset.type === 'sound_effect' ? '🔊' : '🎵'}</span>
+        <svg className="shrink-0" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
         <span className="text-[10px]">{asset.type === 'sound_effect' ? '音效' : '音频'}</span>
       </div>
     )}
     <div className="absolute inset-x-0 bottom-0 bg-black/70 p-1 text-[10px] truncate text-gray-300 flex items-center gap-1">
-      {isFixed && <span className="text-blue-400 shrink-0">📌</span>}
+      {isFixed && <svg className="shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 17v5"/><path d="M9 2h6l-1 7h4l-5 7-5-7h4z"/></svg>}
       <span className="truncate">{asset.name}</span>
     </div>
   </div>
 ));
 
+const PresetItem = memo(({ preset, onClick }: {
+  preset: PresetDefinition;
+  onClick: () => void;
+}) => (
+  <div
+    onClick={onClick}
+    className="h-16 bg-black/20 hover:bg-brand-500/10 border border-white/5 hover:border-brand-500/50 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all active:scale-95 group"
+  >
+    <div className="text-[10px] text-gray-300 group-hover:text-white text-center px-1">{preset.name}</div>
+  </div>
+));
+
 export const AssetPanel: React.FC = () => {
-  const { assets, addAssets, addEffectToClip, project, removeAsset } = useProjectStore();
-  const { selectedClipId } = useUIStore();
+  const assets = useProjectStore((s) => s.assets);
+  const addAssets = useProjectStore((s) => s.addAssets);
+  const addEffectToClip = useProjectStore((s) => s.addEffectToClip);
+  const project = useProjectStore((s) => s.project);
+  const removeAsset = useProjectStore((s) => s.removeAsset);
+  const selectedClipId = useUIStore((s) => s.selectedClipId);
   const {
     fixedAssets,
     fixedFolderPath,
@@ -66,7 +87,6 @@ export const AssetPanel: React.FC = () => {
     setFixedAssets,
   } = useAssetStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const svgInputRef = useRef<HTMLTextAreaElement>(null);
   const [activeTab, setActiveTab] = useState<'local' | 'text' | 'effects' | 'ai' | 'drawing'>('local');
   const [expandedCategory, setExpandedCategory] = useState<string | null>('entrance');
   const [isSvgModalOpen, setIsSvgModalOpen] = useState(false);
@@ -239,9 +259,7 @@ export const AssetPanel: React.FC = () => {
         alert('当前浏览器不支持文件夹选择功能，请使用 Chrome 86+ 或 Edge 86+ 浏览器');
         return;
       }
-      const handle = await (window as any).showDirectoryPicker({
-        mode: 'read',
-      });
+      const handle = await (window as any).showDirectoryPicker({ mode: 'read' });
       setDirHandle(handle);
       setFixedFolderPath(handle.name);
       setIsScanningFolder(true);
@@ -276,6 +294,32 @@ export const AssetPanel: React.FC = () => {
     setDirHandle(null);
   };
 
+  const filteredImportedAssets = useMemo(() => {
+    const seen = new Set<string>();
+    return importedAssets
+      .filter(asset => assetCategory === 'all' || asset.type === assetCategory)
+      .filter(asset => {
+        if (seen.has(asset.id)) return false;
+        seen.add(asset.id);
+        return true;
+      });
+  }, [importedAssets, assetCategory]);
+
+  const filteredFixedAssets = useMemo(() => {
+    return assetCategory === 'all'
+      ? fixedAssets
+      : fixedAssets.filter(a => a.type === assetCategory);
+  }, [fixedAssets, assetCategory]);
+
+  const presetsByCategory = useMemo(() => {
+    const allPresets = Object.values(PRESETS);
+    const result: Record<string, PresetDefinition[]> = {};
+    for (const cat of categories) {
+      result[cat.key] = allPresets.filter((p: PresetDefinition) => p.category === cat.key);
+    }
+    return result;
+  }, [categories]);
+
   const placeholderCode = `{
   id: "custom_shake",
   name: "自定义震动",
@@ -287,146 +331,6 @@ export const AssetPanel: React.FC = () => {
   }
 }`;
 
-  const renderFixedAssetGrid = () => {
-    const filtered = assetCategory === 'all'
-      ? fixedAssets
-      : fixedAssets.filter(a => a.type === assetCategory);
-
-    return (
-      <>
-        <div className="px-3 pb-2 space-y-2">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleSelectFixedFolder}
-              className="flex-1 border border-dashed border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-500/50 rounded-xl h-12 flex items-center justify-center gap-2 cursor-pointer transition-all group"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-400">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-              </svg>
-              <span className="text-[10px] text-blue-400 group-hover:text-blue-300">
-                {fixedFolderPath ? `📁 ${fixedFolderPath}` : '选择文件夹'}
-              </span>
-            </button>
-            {fixedFolderPath && (
-              <button
-                onClick={handleRefreshFixedFolder}
-                disabled={isScanningFolder}
-                className="shrink-0 w-8 h-8 border border-white/10 bg-white/5 hover:bg-white/10 rounded-lg flex items-center justify-center transition-colors"
-                title="刷新"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={clsx("text-gray-400", isScanningFolder && "animate-spin")}>
-                  <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-                </svg>
-              </button>
-            )}
-          </div>
-          {fixedFolderPath && (
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[10px] text-gray-500">📌 固定素材不可删除，可拖拽使用</span>
-              <button
-                onClick={handleClearFixedFolder}
-                className="text-[10px] text-gray-500 hover:text-red-400 transition-colors"
-              >
-                断开
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="px-3 pb-2 flex gap-1">
-          <button onClick={() => setAssetCategory('all')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'all' ? "bg-blue-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}>全部</button>
-          <button onClick={() => setAssetCategory('image')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'image' ? "bg-blue-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}>🖼️ 图片</button>
-          <button onClick={() => setAssetCategory('video')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'video' ? "bg-blue-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}>🎬 视频</button>
-          <button onClick={() => setAssetCategory('audio')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'audio' ? "bg-blue-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}>🎵 音频</button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3 pb-3">
-          {isScanningFolder ? (
-            <div className="text-center text-gray-500 text-xs py-8">
-              <svg className="animate-spin h-6 w-6 mx-auto mb-2 text-blue-400" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              正在扫描文件夹...
-            </div>
-          ) : !fixedFolderPath ? (
-            <div className="text-center text-gray-500 text-xs py-8">
-              <div className="text-3xl mb-2">📂</div>
-              <p>点击上方按钮选择一个文件夹</p>
-              <p className="text-[10px] text-gray-600 mt-1">将扫描文件夹中的所有素材文件</p>
-            </div>
-          ) : filtered.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3">
-              {filtered.map(asset => (
-                <AssetGridItem
-                  key={asset.id}
-                  asset={asset}
-                  onDragStart={handleDragStart}
-                  onContextMenu={handleAssetContextMenu}
-                  isFixed
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center text-gray-500 text-xs py-8">
-              该文件夹中没有找到支持的素材文件
-            </div>
-          )}
-        </div>
-      </>
-    );
-  };
-
-  const renderImportedAssetGrid = () => {
-    const filtered = assetCategory === 'all'
-      ? importedAssets
-      : importedAssets.filter(a => a.type === assetCategory);
-
-    return (
-      <>
-        <div className="px-3 pb-3 space-y-2">
-          <div onClick={() => fileInputRef.current?.click()} className="border border-dashed border-white/10 bg-white/5 hover:bg-white/10 hover:border-brand-500/50 rounded-xl h-16 flex flex-col items-center justify-center cursor-pointer transition-all group">
-            <span className="text-xl text-brand-500 group-hover:scale-110 transition-transform">+</span>
-            <span className="text-[10px] text-gray-400 mt-1">导入图片/视频/音频</span>
-            <input ref={fileInputRef} type="file" multiple accept="image/*,video/*,audio/*" className="hidden" onChange={handleFileSelect} />
-          </div>
-          <button
-            onClick={() => setIsSvgModalOpen(true)}
-            className="w-full border border-dashed border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 rounded-xl h-10 flex items-center justify-center gap-2 cursor-pointer transition-all group"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-500"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
-            <span className="text-[10px] text-gray-400">粘贴SVG代码转图片</span>
-          </button>
-        </div>
-
-        <div className="px-3 pb-2 flex gap-1">
-          <button onClick={() => setAssetCategory('all')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'all' ? "bg-brand-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}>全部</button>
-          <button onClick={() => setAssetCategory('image')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'image' ? "bg-brand-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}>🖼️ 图片</button>
-          <button onClick={() => setAssetCategory('video')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'video' ? "bg-brand-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}>🎬 视频</button>
-          <button onClick={() => setAssetCategory('audio')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'audio' ? "bg-brand-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}>🎵 音频</button>
-          <button onClick={() => setAssetCategory('sound_effect')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'sound_effect' ? "bg-brand-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}>🔊 音效</button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3 pb-3">
-          {filtered.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3">
-              {filtered.map(asset => (
-                <AssetGridItem
-                  key={asset.id}
-                  asset={asset}
-                  onDragStart={handleDragStart}
-                  onContextMenu={handleAssetContextMenu}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center text-gray-500 text-xs py-8">暂无导入素材</div>
-          )}
-        </div>
-      </>
-    );
-  };
-
   const contextMenuAsset = assetContextMenu
     ? [...importedAssets, ...fixedAssets].find(a => a.id === assetContextMenu.assetId)
     : null;
@@ -436,21 +340,11 @@ export const AssetPanel: React.FC = () => {
     <div className="flex flex-col h-full select-none relative" onClick={handleClick}>
       <div className="p-3 pb-2">
         <div className="flex bg-black/20 p-1 rounded-lg border border-white/5 gap-1">
-          <div onClick={() => setActiveTab('local')} className={clsx("flex-1 py-1.5 text-center text-xs font-medium rounded-md cursor-pointer transition-all", activeTab === 'local' ? "bg-bg-surface text-white shadow-md border border-white/10" : "text-gray-500 hover:text-gray-300")}>
-            素材
-          </div>
-          <div onClick={() => setActiveTab('text')} className={clsx("flex-1 py-1.5 text-center text-xs font-medium rounded-md cursor-pointer transition-all", activeTab === 'text' ? "bg-bg-surface text-white shadow-md border border-white/10" : "text-gray-500 hover:text-gray-300")}>
-            文字
-          </div>
-          <div onClick={() => setActiveTab('effects')} className={clsx("flex-1 py-1.5 text-center text-xs font-medium rounded-md cursor-pointer transition-all", activeTab === 'effects' ? "bg-bg-surface text-white shadow-md border border-white/10" : "text-gray-500 hover:text-gray-300")}>
-            预设
-          </div>
-          <div onClick={() => setActiveTab('ai')} className={clsx("flex-1 py-1.5 text-center text-xs font-medium rounded-md cursor-pointer transition-all", activeTab === 'ai' ? "bg-bg-surface text-white shadow-md border border-white/10" : "text-gray-500 hover:text-gray-300")}>
-            AI生成
-          </div>
-          <div onClick={() => setIsDrawingBoardOpen(true)} className={clsx("flex-1 py-1.5 text-center text-xs font-medium rounded-md cursor-pointer transition-all", isDrawingBoardOpen ? "bg-bg-surface text-white shadow-md border border-white/10" : "text-gray-500 hover:text-gray-300")}>
-            画板
-          </div>
+          <div onClick={() => setActiveTab('local')} className={clsx("flex-1 py-1.5 text-center text-xs font-medium rounded-md cursor-pointer transition-all", activeTab === 'local' ? "bg-bg-surface text-white shadow-md border border-white/10" : "text-gray-500 hover:text-gray-300")}>素材</div>
+          <div onClick={() => setActiveTab('text')} className={clsx("flex-1 py-1.5 text-center text-xs font-medium rounded-md cursor-pointer transition-all", activeTab === 'text' ? "bg-bg-surface text-white shadow-md border border-white/10" : "text-gray-500 hover:text-gray-300")}>文字</div>
+          <div onClick={() => setActiveTab('effects')} className={clsx("flex-1 py-1.5 text-center text-xs font-medium rounded-md cursor-pointer transition-all", activeTab === 'effects' ? "bg-bg-surface text-white shadow-md border border-white/10" : "text-gray-500 hover:text-gray-300")}>预设</div>
+          <div onClick={() => setActiveTab('ai')} className={clsx("flex-1 py-1.5 text-center text-xs font-medium rounded-md cursor-pointer transition-all", activeTab === 'ai' ? "bg-bg-surface text-white shadow-md border border-white/10" : "text-gray-500 hover:text-gray-300")}>AI生成</div>
+          <div onClick={() => setIsDrawingBoardOpen(true)} className={clsx("flex-1 py-1.5 text-center text-xs font-medium rounded-md cursor-pointer transition-all", isDrawingBoardOpen ? "bg-bg-surface text-white shadow-md border border-white/10" : "text-gray-500 hover:text-gray-300")}>画板</div>
         </div>
       </div>
 
@@ -467,7 +361,7 @@ export const AssetPanel: React.FC = () => {
                     : "text-gray-500 hover:text-gray-300"
                 )}
               >
-                <span>📌</span> 固定素材库
+                <svg className="shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 17v5"/><path d="M9 2h6l-1 7h4l-5 7-5-7h4z"/></svg> 固定素材库
               </div>
               <div
                 onClick={() => setAssetLibraryMode('imported')}
@@ -483,7 +377,122 @@ export const AssetPanel: React.FC = () => {
             </div>
           </div>
 
-          {assetLibraryMode === 'fixed' ? renderFixedAssetGrid() : renderImportedAssetGrid()}
+          {assetLibraryMode === 'fixed' ? (
+            <>
+              <div className="px-3 pb-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSelectFixedFolder}
+                    className="flex-1 border border-dashed border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-500/50 rounded-xl h-12 flex items-center justify-center gap-2 cursor-pointer transition-all group"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-400">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <span className="text-[10px] text-blue-400 group-hover:text-blue-300">
+                      {fixedFolderPath ? `📁 ${fixedFolderPath}` : '选择文件夹'}
+                    </span>
+                  </button>
+                  {fixedFolderPath && (
+                    <button
+                      onClick={handleRefreshFixedFolder}
+                      disabled={isScanningFolder}
+                      className="shrink-0 w-8 h-8 border border-white/10 bg-white/5 hover:bg-white/10 rounded-lg flex items-center justify-center transition-colors"
+                      title="刷新"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={clsx("text-gray-400", isScanningFolder && "animate-spin")}>
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {fixedFolderPath && (
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] text-gray-500">固定素材不可删除，可拖拽使用</span>
+                    <button onClick={handleClearFixedFolder} className="text-[10px] text-gray-500 hover:text-red-400 transition-colors">断开</button>
+                  </div>
+                )}
+              </div>
+
+              <div className="px-3 pb-2 flex gap-1 flex-wrap">
+                <button onClick={() => setAssetCategory('all')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'all' ? "bg-blue-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}>全部</button>
+                <button onClick={() => setAssetCategory('image')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'image' ? "bg-blue-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline mr-1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>图片</button>
+                <button onClick={() => setAssetCategory('video')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'video' ? "bg-blue-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline mr-1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>视频</button>
+                <button onClick={() => setAssetCategory('audio')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'audio' ? "bg-blue-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline mr-1"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>音频</button>
+              </div>
+
+              <div className="flex-1 overflow-hidden px-3 pb-3">
+                {isScanningFolder ? (
+                  <div className="text-center text-gray-500 text-xs py-8">
+                    <svg className="animate-spin h-6 w-6 mx-auto mb-2 text-blue-400" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    正在扫描文件夹...
+                  </div>
+                ) : !fixedFolderPath ? (
+                  <div className="text-center text-gray-500 text-xs py-8">
+                    <div className="text-3xl mb-2">📂</div>
+                    <p>点击上方按钮选择一个文件夹</p>
+                    <p className="text-[10px] text-gray-600 mt-1">将扫描文件夹中的所有素材文件</p>
+                  </div>
+                ) : filteredFixedAssets.length > 0 ? (
+                  <VirtualGrid
+                    items={filteredFixedAssets}
+                    itemWidth={110}
+                    itemHeight={110}
+                    gap={8}
+                    containerHeight="100%"
+                    keyExtractor={(asset) => asset.id}
+                    renderItem={(asset) => (
+                      <AssetGridItem asset={asset} onDragStart={handleDragStart} onContextMenu={handleAssetContextMenu} isFixed />
+                    )}
+                  />
+                ) : (
+                  <div className="text-center text-gray-500 text-xs py-8">该文件夹中没有找到支持的素材文件</div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="px-3 pb-3 space-y-2">
+                <div onClick={() => fileInputRef.current?.click()} className="border border-dashed border-white/10 bg-white/5 hover:bg-white/10 hover:border-brand-500/50 rounded-xl h-16 flex flex-col items-center justify-center cursor-pointer transition-all group">
+                  <span className="text-xl text-brand-500 group-hover:scale-110 transition-transform">+</span>
+                  <span className="text-[10px] text-gray-400 mt-1">导入图片/视频/音频</span>
+                  <input ref={fileInputRef} type="file" multiple accept="image/*,video/*,audio/*" className="hidden" onChange={handleFileSelect} />
+                </div>
+                <button onClick={() => setIsSvgModalOpen(true)} className="w-full border border-dashed border-white/10 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 rounded-xl h-10 flex items-center justify-center gap-2 cursor-pointer transition-all group">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-500"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                  <span className="text-[10px] text-gray-400">粘贴SVG代码转图片</span>
+                </button>
+              </div>
+
+              <div className="px-3 pb-2 flex gap-1 flex-wrap">
+                <button onClick={() => setAssetCategory('all')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'all' ? "bg-brand-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}>全部</button>
+                <button onClick={() => setAssetCategory('image')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'image' ? "bg-brand-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline mr-1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>图片</button>
+                <button onClick={() => setAssetCategory('video')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'video' ? "bg-brand-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline mr-1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>视频</button>
+                <button onClick={() => setAssetCategory('audio')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'audio' ? "bg-brand-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline mr-1"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>音频</button>
+                <button onClick={() => setAssetCategory('sound_effect')} className={clsx("px-2 py-1 text-[10px] rounded transition-colors", assetCategory === 'sound_effect' ? "bg-brand-500 text-white" : "bg-white/5 text-gray-400 hover:bg-white/10")}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline mr-1"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>音效</button>
+              </div>
+
+              <div className="flex-1 overflow-hidden px-3 pb-3">
+                {filteredImportedAssets.length > 0 ? (
+                  <VirtualGrid
+                    items={filteredImportedAssets}
+                    itemWidth={110}
+                    itemHeight={110}
+                    gap={8}
+                    containerHeight="100%"
+                    keyExtractor={(asset) => asset.id}
+                    renderItem={(asset) => (
+                      <AssetGridItem asset={asset} onDragStart={handleDragStart} onContextMenu={handleAssetContextMenu} />
+                    )}
+                  />
+                ) : (
+                  <div className="text-center text-gray-500 text-xs py-8">暂无导入素材</div>
+                )}
+              </div>
+            </>
+          )}
         </>
       )}
 
@@ -491,11 +500,7 @@ export const AssetPanel: React.FC = () => {
         <div className="flex-1 overflow-y-auto px-3 pt-0">
           <div className="text-[10px] text-gray-500 mb-2">拖拽添加文字</div>
           <div className="grid grid-cols-2 gap-3">
-            <div
-              draggable
-              onDragStart={(e) => handleDragStart(e, 'text_default', 'text')}
-              className="aspect-video bg-black/20 rounded-lg border border-white/5 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing hover:border-yellow-500/50 transition-colors group"
-            >
+            <div draggable onDragStart={(e) => handleDragStart(e, 'text_default', 'text')} className="aspect-video bg-black/20 rounded-lg border border-white/5 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing hover:border-yellow-500/50 transition-colors group">
               <span className="text-2xl font-bold text-white group-hover:scale-110 transition-transform">T</span>
               <span className="text-[10px] text-gray-400 mt-1">默认文本</span>
             </div>
@@ -505,39 +510,29 @@ export const AssetPanel: React.FC = () => {
 
       {activeTab === 'effects' && (
         <div className="flex-1 overflow-y-auto p-3 pt-0 space-y-2 relative">
-          <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="w-full py-1.5 mb-2 text-xs border border-dashed border-white/20 text-gray-400 hover:text-brand-500 hover:border-brand-500/50 rounded transition-colors"
-          >
-            + 导入预设代码
-          </button>
-          {categories.map(({ key, name }) => (
-            <div key={key} className="rounded-xl overflow-hidden border border-white/5 bg-white/[0.02]">
-              <div
-                onClick={() => setExpandedCategory(expandedCategory === key ? null : key)}
-                className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-white/5 cursor-pointer hover:bg-white/10 flex justify-between items-center"
-              >
-                {name}
-                <span className={clsx("transition-transform", expandedCategory === key ? "rotate-180" : "")}>▼</span>
-              </div>
-              {expandedCategory === key && (
-                <div className="p-2 grid grid-cols-2 gap-2 animate-fade-in">
-                  {Object.values(PRESETS).filter((p: PresetDefinition) => p.category === key).map((preset: PresetDefinition) => (
-                    <div
-                      key={preset.id}
-                      onClick={() => handleApplyEffect(preset.id)}
-                      className="h-16 bg-black/20 hover:bg-brand-500/10 border border-white/5 hover:border-brand-500/50 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all active:scale-95 group"
-                    >
-                      <div className="text-[10px] text-gray-300 group-hover:text-white text-center px-1">{preset.name}</div>
-                    </div>
-                  ))}
-                  {Object.values(PRESETS).filter((p: PresetDefinition) => p.category === key).length === 0 && (
-                    <div className="col-span-2 text-[10px] text-gray-600 text-center py-2">暂无预设</div>
-                  )}
+          <button onClick={() => setIsImportModalOpen(true)} className="w-full py-1.5 mb-2 text-xs border border-dashed border-white/20 text-gray-400 hover:text-brand-500 hover:border-brand-500/50 rounded transition-colors">+ 导入预设代码</button>
+          {categories.map((cat) => {
+            const isExpanded = expandedCategory === cat.key;
+            const catPresets = presetsByCategory[cat.key] || [];
+            return (
+              <div key={cat.key} className="rounded-xl overflow-hidden border border-white/5 bg-white/[0.02] mb-2">
+                <div onClick={() => setExpandedCategory(isExpanded ? null : cat.key)} className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-white/5 cursor-pointer hover:bg-white/10 flex justify-between items-center">
+                  {cat.name}
+                  <svg className={clsx("w-3 h-3 transition-transform text-gray-500", isExpanded ? "rotate-180" : "")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
-              )}
-            </div>
-          ))}
+                {isExpanded && (
+                  <div className="p-2 grid grid-cols-2 gap-2 animate-fade-in">
+                    {catPresets.map((preset: PresetDefinition) => (
+                      <PresetItem key={preset.id} preset={preset} onClick={() => handleApplyEffect(preset.id)} />
+                    ))}
+                    {catPresets.length === 0 && (
+                      <div className="col-span-2 text-[10px] text-gray-600 text-center py-2">暂无预设</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -546,44 +541,17 @@ export const AssetPanel: React.FC = () => {
           <div className="text-[10px] text-gray-500 mb-2">ComfyUI 图片生成</div>
           <div className="space-y-1">
             <label className="text-[10px] text-gray-400">正向提示词</label>
-            <textarea
-              value={imagePrompt}
-              onChange={(e) => setImagePrompt(e.target.value)}
-              placeholder="描述你想要的图片内容，如：美丽的风景，蓝天白云，青山绿水..."
-              className="w-full h-20 bg-black/20 border border-white/10 rounded-lg p-2 text-xs text-white resize-none focus:border-brand-500 outline-none"
-            />
+            <textarea value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} placeholder="描述你想要的图片内容..." className="w-full h-20 bg-black/20 border border-white/10 rounded-lg p-2 text-xs text-white resize-none focus:border-brand-500 outline-none" />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] text-gray-400">负向提示词</label>
-            <textarea
-              value={negativePrompt}
-              onChange={(e) => setNegativePrompt(e.target.value)}
-              placeholder="描述你不想要的内容..."
-              className="w-full h-12 bg-black/20 border border-white/10 rounded-lg p-2 text-xs text-white resize-none focus:border-brand-500 outline-none"
-            />
+            <textarea value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} placeholder="描述你不想要的内容..." className="w-full h-12 bg-black/20 border border-white/10 rounded-lg p-2 text-xs text-white resize-none focus:border-brand-500 outline-none" />
           </div>
-          <button
-            onClick={handleGenerateImage}
-            disabled={isGeneratingImage || !imagePrompt.trim()}
-            className="w-full py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-2"
-          >
+          <button onClick={handleGenerateImage} disabled={isGeneratingImage || !imagePrompt.trim()} className="w-full py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-2">
             {isGeneratingImage ? (
-              <>
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                {imageGenProgress || '生成中...'}
-              </>
+              <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>{imageGenProgress || '生成中...'}</>
             ) : (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-                生成图片
-              </>
+              <><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>生成图片</>
             )}
           </button>
           <div className="text-[10px] text-gray-500 space-y-1">
@@ -591,39 +559,6 @@ export const AssetPanel: React.FC = () => {
             <p>• 默认尺寸: 1024×576 (16:9)</p>
             <p>• 生成时间约 10-30 秒</p>
           </div>
-          {assets.filter(a => a.name.startsWith('ai_generated')).length > 0 && (
-            <div className="mt-4">
-              <div className="text-[10px] text-gray-400 mb-2">最近生成的图片</div>
-              <div className="grid grid-cols-2 gap-2">
-                {(() => {
-                  const seen = new Set<string>();
-                  return assets
-                    .filter(a => a.name.startsWith('ai_generated'))
-                    .filter(a => {
-                      if (seen.has(a.id)) return false;
-                      seen.add(a.id);
-                      return true;
-                    })
-                    .slice(-4)
-                    .reverse()
-                    .map(asset => (
-                      <div
-                        key={asset.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, asset.id, asset.type)}
-                        className="aspect-video bg-black/20 rounded-lg border border-white/5 overflow-hidden relative group cursor-grab active:cursor-grabbing hover:border-brand-500/50 transition-colors"
-                      >
-                        {asset.url ? (
-                          <img src={asset.url} className="w-full h-full object-cover opacity-80 group-hover:opacity-100" alt={asset.name} />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">{asset.name}</div>
-                        )}
-                      </div>
-                    ));
-                })()}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -633,14 +568,7 @@ export const AssetPanel: React.FC = () => {
             <span className="font-bold text-sm">SVG转图片</span>
             <button onClick={() => setIsSvgModalOpen(false)} className="text-gray-400 hover:text-white">✕</button>
           </div>
-          <div className="text-[10px] text-gray-500 mb-2">粘贴SVG代码，系统将自动转换为PNG图片</div>
-          <textarea
-            ref={svgInputRef}
-            className="flex-1 bg-black/50 border border-white/10 rounded p-2 text-[10px] font-mono text-gray-300 resize-none focus:border-brand-500 outline-none"
-            placeholder={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">\n  <circle cx="50" cy="50" r="40" fill="#00d4ff"/>\n</svg>`}
-            value={svgCode}
-            onChange={(e) => setSvgCode(e.target.value)}
-          />
+          <textarea className="flex-1 bg-black/50 border border-white/10 rounded p-2 text-[10px] font-mono text-gray-300 resize-none focus:border-brand-500 outline-none" placeholder={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">\n  <circle cx="50" cy="50" r="40" fill="#00d4ff"/>\n</svg>`} value={svgCode} onChange={(e) => setSvgCode(e.target.value)} />
           <div className="flex gap-2 mt-3">
             <button onClick={() => setIsSvgModalOpen(false)} className="flex-1 py-2 text-xs border border-white/20 text-gray-400 hover:text-white rounded transition-colors">取消</button>
             <button onClick={handleConvertSvgToImage} className="flex-1 py-2 text-xs bg-brand-500 hover:bg-brand-600 text-white rounded transition-colors">转换并添加</button>
@@ -654,12 +582,7 @@ export const AssetPanel: React.FC = () => {
             <span className="font-bold text-sm">导入JS预设</span>
             <button onClick={() => setIsImportModalOpen(false)} className="text-gray-400 hover:text-white">✕</button>
           </div>
-          <textarea
-            className="flex-1 bg-black/50 border border-white/10 rounded p-2 text-[10px] font-mono text-gray-300 resize-none focus:border-brand-500 outline-none"
-            placeholder={placeholderCode}
-            value={importCode}
-            onChange={(e) => setImportCode(e.target.value)}
-          />
+          <textarea className="flex-1 bg-black/50 border border-white/10 rounded p-2 text-[10px] font-mono text-gray-300 resize-none focus:border-brand-500 outline-none" placeholder={placeholderCode} value={importCode} onChange={(e) => setImportCode(e.target.value)} />
           <button onClick={handleImportPreset} className="mt-3 btn-primary w-full py-2 text-xs">确认导入</button>
         </div>
       )}
@@ -669,12 +592,7 @@ export const AssetPanel: React.FC = () => {
           <div className="w-[90vw] h-[90vh] bg-[#1E1E24] rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#252530]">
               <span className="text-sm font-medium text-white">画板</span>
-              <button onClick={() => setIsDrawingBoardOpen(false)} className="text-gray-400 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
+              <button onClick={() => setIsDrawingBoardOpen(false)} className="text-gray-400 hover:text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </div>
             <div className="flex-1 overflow-hidden"><DrawingBoard onClose={() => setIsDrawingBoardOpen(false)} /></div>
           </div>
@@ -682,19 +600,11 @@ export const AssetPanel: React.FC = () => {
       )}
 
       {assetContextMenu && (
-        <div
-          className="fixed bg-[#1E1E24] border border-white/10 shadow-2xl rounded-lg py-1 z-[100] w-32 animate-fade-in"
-          style={{ left: assetContextMenu.x, top: assetContextMenu.y }}
-        >
+        <div className="fixed bg-[#1E1E24] border border-white/10 shadow-2xl rounded-lg py-1 z-[100] w-32 animate-fade-in" style={{ left: assetContextMenu.x, top: assetContextMenu.y }}>
           {isContextFixedAsset ? (
-            <div className="px-3 py-2 text-[10px] text-gray-500">📌 固定素材不可删除</div>
+            <div className="px-3 py-2 text-[10px] text-gray-500">固定素材不可删除</div>
           ) : (
-            <button
-              onClick={handleDeleteAsset}
-              className="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-red-500/20 transition-colors"
-            >
-              🗑️ 删除素材
-            </button>
+            <button onClick={handleDeleteAsset} className="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-red-500/20 transition-colors">🗑️ 删除素材</button>
           )}
         </div>
       )}

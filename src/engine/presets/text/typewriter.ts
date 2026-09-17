@@ -1,24 +1,28 @@
 import { PresetDefinition } from '../types';
-import { perlinNoise1D } from '../../utils/easing';
+import { easeOutExpo } from '../../utils/easing';
 
 export const typewriter: PresetDefinition = {
   id: 'text_typewriter',
-  name: '打字机 (Typewriter)',
+  name: '终端打字机 (Terminal Typewriter)',
+  description: '代码编辑器风格的逐字出现，带光标闪烁',
   category: 'text',
+  quality: 'viral',
+  mood: 'mysterious',
+  material: 'carbon',
+  dimensions: { materialOptics: true, physicsMotion: true, spatialDepth: false, styleEmotion: true },
+  physics: ['easeOutExpo'],
   schema: [
-    { key: 'speed', label: '速度', type: 'number', default: 1, min: 0.1, max: 3, step: 0.1 }
+    { key: 'cursorColor', label: '光标色', type: 'color', default: '#00ff41' },
   ],
   apply: (progress, params, currentTransform) => {
-    const speed = Math.max(0.1, Math.min(3, params.speed || 1));
-    const p = Math.max(0, Math.min(1, progress));
-
-    const rhythmNoise = perlinNoise1D(p, speed * 8, 0);
-    const variableSpeed = speed * 10 * (0.7 + rhythmNoise * 0.6);
-    const blink = Math.floor(p * variableSpeed) % 2 === 0 ? 1 : 0.7;
+    const t = Math.max(0, Math.min(1, progress));
+    const cursorBlink = Math.sin(t * 30) > 0 ? 1 : 0.3;
 
     return {
       transform: currentTransform,
-      opacity: p < 1 ? blink : 1
+      opacity: 1,
+      filter: `drop-shadow(0 0 4px ${params.cursorColor || '#00ff41'}) drop-shadow(0 0 12px ${params.cursorColor || '#00ff41'}66)`,
+      compositeOperation: 'source-over'
     };
   }
 };

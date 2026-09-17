@@ -1,24 +1,25 @@
 import { AnimationEffect, EffectRenderMode } from '../../PresetTypes';
 import type { PresetDefinition } from '../../../../engine/presets/types';
 import {
-  bounceIn,
-  slideInLeft,
   fadeIn,
-  rotateIn,
-  slideInRight,
-  zoomIn,
-  zoomInUp,
-  zoomInDown,
-  elasticIn,
-  backIn,
-  flipInX,
-  flipInY,
+  fadeInUp,
   fadeInDown,
   fadeInLeft,
   fadeInRight,
-  fadeInUp,
+  zoomIn,
+  rotateIn,
+  flipInX,
+  flipInY,
+  slideInLeft,
+  slideInRight,
+  slideInUp,
   slideInDown,
-  slideInUp
+  smashIn,
+  glitchIn,
+  glitchSmash,
+  bounceIn,
+  elasticBounce,
+  springScale
 } from '../../../../engine/presets/entrance';
 
 function adaptLegacyPreset(legacyPreset: PresetDefinition, renderMode: EffectRenderMode = EffectRenderMode.CANVAS_2D): AnimationEffect {
@@ -30,45 +31,47 @@ function adaptLegacyPreset(legacyPreset: PresetDefinition, renderMode: EffectRen
 }
 
 export {
-  bounceIn,
-  slideInLeft,
   fadeIn,
-  rotateIn,
-  slideInRight,
-  zoomIn,
-  zoomInUp,
-  zoomInDown,
-  elasticIn,
-  backIn,
-  flipInX,
-  flipInY,
+  fadeInUp,
   fadeInDown,
   fadeInLeft,
   fadeInRight,
-  fadeInUp,
+  zoomIn,
+  rotateIn,
+  flipInX,
+  flipInY,
+  slideInLeft,
+  slideInRight,
+  slideInUp,
   slideInDown,
-  slideInUp
+  smashIn,
+  glitchIn,
+  glitchSmash,
+  bounceIn,
+  elasticBounce,
+  springScale
 };
 
 export const entrancePresets: AnimationEffect[] = [
-  adaptLegacyPreset(bounceIn),
-  adaptLegacyPreset(slideInLeft),
   adaptLegacyPreset(fadeIn),
-  adaptLegacyPreset(rotateIn),
-  adaptLegacyPreset(slideInRight),
-  adaptLegacyPreset(zoomIn),
-  adaptLegacyPreset(zoomInUp),
-  adaptLegacyPreset(zoomInDown),
-  adaptLegacyPreset(elasticIn),
-  adaptLegacyPreset(backIn),
-  adaptLegacyPreset(flipInX),
-  adaptLegacyPreset(flipInY),
+  adaptLegacyPreset(fadeInUp),
   adaptLegacyPreset(fadeInDown),
   adaptLegacyPreset(fadeInLeft),
   adaptLegacyPreset(fadeInRight),
-  adaptLegacyPreset(fadeInUp),
+  adaptLegacyPreset(zoomIn),
+  adaptLegacyPreset(rotateIn),
+  adaptLegacyPreset(flipInX),
+  adaptLegacyPreset(flipInY),
+  adaptLegacyPreset(slideInLeft),
+  adaptLegacyPreset(slideInRight),
+  adaptLegacyPreset(slideInUp),
   adaptLegacyPreset(slideInDown),
-  adaptLegacyPreset(slideInUp)
+  adaptLegacyPreset(smashIn),
+  adaptLegacyPreset(glitchIn),
+  adaptLegacyPreset(glitchSmash),
+  adaptLegacyPreset(bounceIn),
+  adaptLegacyPreset(elasticBounce),
+  adaptLegacyPreset(springScale)
 ];
 
 export default entrancePresets;

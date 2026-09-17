@@ -37,7 +37,7 @@ interface DrawingBoardProps {
 }
 
 export const DrawingBoard: React.FC<DrawingBoardProps> = ({ onClose }) => {
-  const { addAssets } = useProjectStore();
+  const addAssets = useProjectStore((s) => s.addAssets);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -848,17 +848,30 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({ onClose }) => {
     }
   };
 
-  const tools: { id: DrawingTool; icon: string; label: string }[] = [
-    { id: 'brush', icon: '✏️', label: '画笔' },
-    { id: 'eraser', icon: '🧽', label: '橡皮擦' },
-    { id: 'selection', icon: '👆', label: '选择' },
-    { id: 'rectangle', icon: '⬜', label: '矩形' },
-    { id: 'ellipse', icon: '⭕', label: '椭圆' },
-    { id: 'diamond', icon: '🔶', label: '菱形' },
-    { id: 'line', icon: '📏', label: '直线' },
-    { id: 'arrow', icon: '➡️', label: '箭头' },
-    { id: 'text', icon: 'T', label: '文字' },
-    { id: 'image', icon: '🖼️', label: '图片' },
+const toolIconMap: Record<string, React.ReactNode> = {
+  brush: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>,
+  eraser: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 20H7L3 16l9-9 8 8-4 4z"/><path d="M6.5 13.5l5-5"/></svg>,
+  select: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg>,
+  rect: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>,
+  circle: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>,
+  diamond: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 12l10 10 10-10L12 2z"/></svg>,
+  line: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="19" x2="19" y2="5"/></svg>,
+  arrow: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
+  text: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>,
+  image: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>,
+};
+
+const tools = [
+    { id: 'brush', icon: 'brush', label: '画笔' },
+    { id: 'eraser', icon: 'eraser', label: '橡皮擦' },
+    { id: 'selection', icon: 'select', label: '选择' },
+    { id: 'rectangle', icon: 'rect', label: '矩形' },
+    { id: 'ellipse', icon: 'circle', label: '椭圆' },
+    { id: 'diamond', icon: 'diamond', label: '菱形' },
+    { id: 'line', icon: 'line', label: '直线' },
+    { id: 'arrow', icon: 'arrow', label: '箭头' },
+    { id: 'text', icon: 'text', label: '文字' },
+    { id: 'image', icon: 'image', label: '图片' },
   ];
 
   return (
@@ -884,7 +897,7 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({ onClose }) => {
               )}
               title={tool.label}
             >
-              <span className="mr-1">{tool.icon}</span>
+              <span className="mr-1">{toolIconMap[tool.icon]}</span>
               {tool.label}
             </button>
           ))}
@@ -1190,7 +1203,7 @@ export const DrawingBoard: React.FC<DrawingBoardProps> = ({ onClose }) => {
                   disabled={isExporting}
                   className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 disabled:opacity-50 text-white text-xs rounded transition-colors"
                 >
-                  🎬 导出MP4视频
+                  <svg className="inline w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>导出MP4视频
                 </button>
                 <div className="flex items-center gap-2 px-2">
                   <span className="text-[10px] text-gray-400">帧率:</span>

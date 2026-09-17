@@ -1,12 +1,8 @@
 export {
-  liquidEtherTemplate,
-  auroraTemplate,
-  wavesTemplate,
-  silkTemplate,
-  particlesTemplate,
-  gridDistortionTemplate,
-  lightRaysTemplate,
-  beamsTemplate,
-  galaxyTemplate,
-  noiseTextureTemplate,
+  matrixRainTemplate,
+  cyberTerminalTemplate,
+  hologramGridTemplate,
+  neonCityTemplate,
+  dataVortexTemplate,
+  particleTunnelTemplate,
 } from '../../../../engine/templates';

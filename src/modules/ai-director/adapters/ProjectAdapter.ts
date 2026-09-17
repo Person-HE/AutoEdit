@@ -14,6 +14,7 @@ export interface AddClipInput {
   duration?: number;
   textData?: Partial<Clip['textData']>;
   transform?: Partial<Clip['transform']>;
+  style?: Partial<Clip['style']>;
   templateId?: string;
   templateParams?: Record<string, any>;
   name?: string;
@@ -32,6 +33,7 @@ class ProjectAdapter {
           duration: input.duration,
           textData: input.textData,
           transform: input.transform,
+          style: input.style,
           name: input.name
         };
         break;
@@ -45,6 +47,7 @@ class ProjectAdapter {
           startTime: input.startTime,
           duration: input.duration,
           templateParams: input.templateParams,
+          style: input.style,
           name: input.name
         };
         break;
@@ -60,6 +63,7 @@ class ProjectAdapter {
           startTime: input.startTime,
           duration: input.duration,
           transform: input.transform,
+          style: input.style,
           name: input.name
         };
         break;

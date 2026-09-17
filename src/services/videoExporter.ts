@@ -5,8 +5,58 @@
  * @migrationDate 2026-04-13
  * @note 文件内容保留以确保向后兼容，新代码请使用新的模块
  */
-import { Project, Clip, Asset } from '../types/core';
+import { Project, Clip, Asset, Effect, Transform } from '../types/core';
 import { getTemplate } from '../engine/templates';
+import { PRESETS } from '../engine/presets';
+
+function getEffectProgress(effect: Effect, clip: Clip, currentTime: number): number {
+  const relativeTime = currentTime - clip.startTime;
+  const duration = effect.duration || clip.duration;
+  if (duration <= 0) return 0;
+
+  if (effect.type === 'entrance') {
+    return Math.max(0, Math.min(1, relativeTime / duration));
+  }
+  if (effect.type === 'exit') {
+    const timeFromEnd = clip.startTime + clip.duration - currentTime;
+    return Math.max(0, Math.min(1, 1 - timeFromEnd / duration));
+  }
+  // emphasis / motion / fx / text / transition：循环或单次
+  const p = duration > 0 ? (relativeTime % duration) / duration : 0;
+  return Math.max(0, Math.min(1, p));
+}
+
+function apply3DTransform(ctx: CanvasRenderingContext2D, transform: Transform) {
+  const rx = (transform.rotateX || 0) * Math.PI / 180;
+  const ry = (transform.rotateY || 0) * Math.PI / 180;
+  const rz = (transform.rotateZ || 0) * Math.PI / 180;
+
+  if (rx === 0 && ry === 0 && rz === 0 && !transform.skewX && !transform.skewY) return;
+
+  // skew
+  if (transform.skewX || transform.skewY) {
+    const skewXRad = (transform.skewX || 0) * Math.PI / 180;
+    const skewYRad = (transform.skewY || 0) * Math.PI / 180;
+    ctx.transform(1, Math.tan(skewYRad), Math.tan(skewXRad), 1, 0, 0);
+  }
+
+  // 简化 3D 投影：绕 X/Y/Z 轴旋转
+  if (rx !== 0 || ry !== 0 || rz !== 0) {
+    const cosX = Math.cos(rx);
+    const cosY = Math.cos(ry);
+    const sinY = Math.sin(ry);
+    const sinX = Math.sin(rx);
+    const cosZ = Math.cos(rz);
+    const sinZ = Math.sin(rz);
+
+    const scaleX = cosY * cosZ;
+    const skewY3D = cosY * sinZ;
+    const skewX3D = sinY * cosZ + sinX * sinZ;
+    const scaleY = cosX * cosZ - sinX * sinY * sinZ;
+
+    ctx.transform(scaleX, skewY3D, skewX3D, scaleY, 0, 0);
+  }
+}
 
 class RenderEngine {
   private ctx: CanvasRenderingContext2D | null = null;
@@ -69,12 +119,35 @@ class RenderEngine {
         if (Math.abs(video.currentTime - clipTime) > 0.2) video.currentTime = clipTime;
       }
 
+      // 计算所有 effect 叠加后的最终状态
+      let transform = { ...clip.transform };
+      let opacity = clip.style?.opacity ?? 1;
+      let filter = '';
+
+      for (const effect of (clip.effects || [])) {
+        const preset = PRESETS[effect.presetId];
+        if (!preset || typeof preset.apply !== 'function') continue;
+
+        const progress = getEffectProgress(effect, clip, time);
+        if (progress <= 0 || progress > 1) continue;
+
+        try {
+          const result = preset.apply(progress, effect.params || {}, transform);
+          if (result.transform) transform = result.transform;
+          if (result.opacity !== undefined) opacity *= result.opacity;
+          if (result.filter) filter += (filter ? ' ' : '') + result.filter;
+        } catch (e) {
+          console.warn(`[RenderEngine] effect ${effect.presetId} apply failed:`, e);
+        }
+      }
+
       ctx.save();
-      const t = clip.transform || { x: 0, y: 0, scale: 1, rotation: 0 };
-      ctx.translate(project.width / 2 + (t.x || 0), project.height / 2 + (t.y || 0));
-      ctx.rotate((t.rotation || 0) * Math.PI / 180);
-      ctx.scale(Math.max(0.001, Math.min(10, t.scale || 1)), Math.max(0.001, Math.min(10, t.scale || 1)));
-      ctx.globalAlpha = clip.style?.opacity ?? 1;
+      ctx.translate(project.width / 2 + (transform.x || 0), project.height / 2 + (transform.y || 0));
+      ctx.rotate((transform.rotation || 0) * Math.PI / 180);
+      ctx.scale(Math.max(0.001, Math.min(10, transform.scale || 1)), Math.max(0.001, Math.min(10, transform.scale || 1)));
+      apply3DTransform(ctx, transform);
+      ctx.globalAlpha = Math.max(0, Math.min(1, opacity));
+      if (filter) ctx.filter = filter;
 
       if (clip.type === 'text' && clip.textData) {
         ctx.fillStyle = clip.textData.color || '#ffffff';

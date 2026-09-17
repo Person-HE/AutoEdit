@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Asset } from '../../types/core';
 import type { AssetState } from './AssetTypes';
 import AssetManager from './AssetManager';
+import { computePeaksFromUrl } from '../../engine/audio/peaks';
 
 const FIXED_FOLDER_KEY = 'fixed_asset_folder_path';
 
@@ -135,6 +136,20 @@ const useAssetStore = create<AssetStore>((set, get) => ({
         isLoading: false
       }));
 
+      // 异步补算音频波形峰值（不阻塞导入）
+      for (const asset of assetsWithThumbnails) {
+        if (asset.type === 'audio' && asset.url && !asset.peaks) {
+          computePeaksFromUrl(asset.url).then(peaks => {
+            if (!peaks) return;
+            asset.peaks = peaks;
+            get().manager.upsertAsset(asset);
+            set(state => ({
+              assets: state.assets.map(a => a.id === asset.id ? { ...a, peaks } : a)
+            }));
+          });
+        }
+      }
+
       return assetsWithThumbnails;
     } catch (error) {
       console.error('Failed to load assets:', error);
@@ -236,6 +251,7 @@ const useAssetStore = create<AssetStore>((set, get) => ({
                   audio.src = url;
                 });
               } catch {}
+              computePeaksFromUrl(url).then(peaks => { if (peaks) asset.peaks = peaks; });
             }
 
             assets.push(asset);

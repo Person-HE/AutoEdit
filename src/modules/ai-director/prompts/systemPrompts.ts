@@ -62,7 +62,6 @@ export const SYSTEM_PROMPTS = {
 - emphasis: 强调动画（脉冲、弹跳、摇摆等）
 - motion: 位移动画（移动、旋转、螺旋等）
 - fx: 视觉特效（故障、毛刺、光效等）
-- transition: 转场动画
 - text: 文本特效
 
 必须严格遵循以下格式：
@@ -266,10 +265,14 @@ export const SYSTEM_PROMPTS = {
 8. 导出视频
 
 ### 最佳实践
-- 优先使用用户已有的素材
-- 文字要简洁，一行不超过10个字
-- 动画时长0.5-1秒为宜
-- 入场和出场动画要配对使用
+- 优先使用用户已有的素材；若无合适素材，使用 SVGAssetGenerator 生成真实感 B-roll（小票、聊天截图、到账通知、工牌等）增强可信度
+- 文字要简洁，一行不超过10个字；爆款短视频每句停留 1.5–2.5 秒，20 秒视频至少 6–10 个分镜
+- 前 3 秒必须出现最强钩子：大字、强动效、冲突画面
+- 高潮/转折处使用强冲击预设：entrance_smash_in, entrance_glitch_in, emphasis_shockwave, fx_chromatic_burst
+- 赛博朋克/科技感场景使用模板：effect_neon_city, bg_code_rain, bg_matrix, effect_screen_glitch, text_viral_hook
+- 利用 zIndex 区分空间层级：背景(0-10)、中景核心信息(50-100)、前景动态元素(150-200)
+- 动画时长0.4-0.8秒为宜，强调效果可持续循环
+- 入场和出场动画要配对使用，结尾必须有明确 CTA（点赞/评论/关注/扣数字）
 - 复杂效果使用模板而不是手动创建
 - 及时保存项目
 
@@ -289,16 +292,30 @@ export function getSystemPrompt(key: SystemPromptKey): string {
 
 export const ENTRANCE_PRESETS_LIST = `- entrance_fade_in, entrance_fade_in_up, entrance_fade_in_down, entrance_fade_in_left, entrance_fade_in_right
 - entrance_slide_in_up, entrance_slide_in_down, entrance_slide_in_left, entrance_slide_in_right
-- entrance_zoom_in, entrance_zoom_in_up, entrance_zoom_in_down
-- entrance_bounce_in, entrance_elastic_in, entrance_back_in
-- entrance_flip_in_x, entrance_flip_in_y`;
+- entrance_zoom_in, entrance_rotate_in
+- entrance_bounce_in, entrance_elastic_bounce, entrance_spring_scale
+- entrance_flip_in_x, entrance_flip_in_y
+- entrance_smash_in（爆裂进入，强冲击）
+- entrance_glitch_in（故障进入，赛博朋克）
+- entrance_glitch_smash（故障爆裂，最强冲击）`;
 
 export const EXIT_PRESETS_LIST = `- exit_fade_out, exit_fade_out_up, exit_fade_out_down
 - exit_slide_out_up, exit_slide_out_down, exit_slide_out_left, exit_slide_out_right
-- exit_zoom_out, exit_bounce_out`;
+- exit_zoom_out, exit_bounce_out, exit_glitch_out`;
+
+export const EMPHASIS_PRESETS_LIST = `- emphasis_flash, emphasis_jitter, emphasis_wobble
+- emphasis_pulse, emphasis_pulse_glow, emphasis_shockwave
+- emphasis_focus_zoom, emphasis_shake`;
+
+export const FX_PRESETS_LIST = `- fx_glow, fx_neon, fx_glow_pulse
+- fx_chromatic_burst, fx_glitch_cyber
+- fx_crt_flicker, fx_scanline
+- fx_hue_rotate`;
 
 export const ALL_PRESETS_LIST = `${ENTRANCE_PRESETS_LIST}
-${EXIT_PRESETS_LIST}`;
+${EXIT_PRESETS_LIST}
+${EMPHASIS_PRESETS_LIST}
+${FX_PRESETS_LIST}`;
 
 export const LAYOUT_SYSTEM = `- full, center, center_large, top_center, bottom_center
 - top_left_quarter, top_right_quarter, bottom_left_quarter, bottom_right_quarter

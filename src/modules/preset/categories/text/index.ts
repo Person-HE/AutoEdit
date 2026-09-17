@@ -11,17 +11,23 @@ function adaptLegacyPreset(legacyPreset: PresetDefinition, renderMode: EffectRen
 
 export {
   typewriter,
-  scaleUp
+  scaleUp,
+  decode,
+  scramble
 } from '../../../../engine/presets/text';
 
 import {
   typewriter,
-  scaleUp
+  scaleUp,
+  decode,
+  scramble
 } from '../../../../engine/presets/text';
 
 export const textPresets: AnimationEffect[] = [
   adaptLegacyPreset(typewriter),
-  adaptLegacyPreset(scaleUp)
+  adaptLegacyPreset(scaleUp),
+  adaptLegacyPreset(decode),
+  adaptLegacyPreset(scramble)
 ];
 
 export default textPresets;

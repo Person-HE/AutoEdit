@@ -3,28 +3,30 @@ import { dampedOscillation } from '../../utils/easing';
 
 export const sway: PresetDefinition = {
   id: 'motion_sway',
-  name: '摆动 (Sway)',
+  name: '摇摆晃动 (Sway)',
+  description: '带惯性的左右摇摆，适合文字强调',
   category: 'motion',
+  quality: 'viral',
+  mood: 'release',
+  material: 'liquid',
+  dimensions: { materialOptics: true, physicsMotion: true, spatialDepth: true, styleEmotion: true },
+  physics: ['dampedOscillation'],
   schema: [
-    { key: 'angle', label: '摆动角度', type: 'number', default: 15, min: 5, max: 45, step: 5 },
-    { key: 'speed', label: '速度', type: 'number', default: 1, min: 0.5, max: 3, step: 0.1 }
+    { key: 'amplitude', label: '振幅', type: 'number', default: 8, min: 0, max: 30 },
   ],
   apply: (progress, params, currentTransform) => {
-    const angle = Math.max(5, Math.min(45, params.angle || 15));
-    const speed = Math.max(0.5, Math.min(3, params.speed || 1));
-    const p = Math.max(0, Math.min(1, progress));
+    const amplitude = Math.max(0, Math.min(30, params.amplitude || 8));
+    const t = Math.max(0, Math.min(1, progress));
 
-    const pendulumDamping = 0.05;
-    const pendulumFreq = speed * 1.5;
-    const oscillation = dampedOscillation(p, pendulumFreq, pendulumDamping);
-    const rotationOffset = oscillation * angle;
+    const rotation = dampedOscillation(t, 1.5, 0.25) * amplitude;
 
     return {
       transform: {
         ...currentTransform,
-        rotation: currentTransform.rotation + rotationOffset
+        rotation: currentTransform.rotation + rotation,
       },
-      opacity: 1
+      opacity: 1,
+      filter: 'drop-shadow(0 0 12px rgba(0,240,255,0.3))'
     };
   }
 };

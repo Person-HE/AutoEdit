@@ -1,6 +1,8 @@
 export { grayscale } from './grayscale';
 export { blur } from './blur';
 export { glow } from './glow';
+export { chromaticBurst } from './chromaticBurst';
+export { crtFlicker } from './crtFlicker';
 export { brightness } from './brightness';
 export { hueRotate } from './hueRotate';
 export { saturate } from './saturate';

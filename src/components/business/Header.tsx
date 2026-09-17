@@ -1,13 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useUIStore } from '../../store/useUIStore';
 import { useProjectStore } from '../../store/useProjectStore';
+import { useAppRouter } from '../../store/useAppRouter';
 import { projectService } from '../../services/projectService';
 import { fileStorage } from '../../services/fileStorage';
 import clsx from 'clsx';
 
 export const Header: React.FC = () => {
-  const { setIsExportModalOpen } = useUIStore();
-  const { project, createNewProject, deleteProject, renameProject, switchProject } = useProjectStore();
+  const setIsExportModalOpen = useUIStore((s) => s.setIsExportModalOpen);
+  const project = useProjectStore((s) => s.project);
+  const createNewProject = useProjectStore((s) => s.createNewProject);
+  const deleteProject = useProjectStore((s) => s.deleteProject);
+  const renameProject = useProjectStore((s) => s.renameProject);
+  const switchProject = useProjectStore((s) => s.switchProject);
+  const goToDirector = useAppRouter((s) => s.goToDirector);
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
@@ -175,7 +181,16 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        <button 
+        <button
+          onClick={goToDirector}
+          className="px-4 py-1.5 text-xs flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium transition-all shadow-lg shadow-purple-500/20"
+          title="进入 AI 导演模式：从一句话想法全自动生成爆款视频"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          <span>AI 导演模式</span>
+        </button>
+
+        <button
           onClick={handleExport}
           className="btn-primary px-4 py-1.5 text-xs flex items-center gap-2"
         >

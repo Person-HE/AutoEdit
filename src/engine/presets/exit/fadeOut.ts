@@ -1,24 +1,19 @@
 import { PresetDefinition } from '../types';
-import { easeInExpo, easeInQuint, dampedOscillation } from '../../utils/easing';
+import { easeInCubic } from '../../utils/easing';
 
 export const fadeOut: PresetDefinition = {
   id: 'exit_fade_out',
-  name: '基础淡出 (Fade Out)',
+  name: '淡出 (Fade Out)',
   category: 'exit',
-  schema: [],
-  apply: (progress, _params, currentTransform) => {
+  schema: [
+    { key: 'endOpacity', label: '结束透明度', type: 'number', default: 0, min: 0, max: 0.5, step: 0.05 },
+  ],
+  apply: (progress, params, currentTransform) => {
+    const endOpacity = params.endOpacity ?? 0;
     const t = Math.max(0, Math.min(1, progress));
-    const opacityEased = easeInExpo(t);
-    const scaleEased = easeInQuint(t);
-    const wobble = dampedOscillation(t, 2, 0.5) * 0.5 * (1 - t);
-
     return {
-      transform: {
-        ...currentTransform,
-        scale: Math.max(0.001, currentTransform.scale * (1 - 0.08 * scaleEased)),
-        rotation: currentTransform.rotation + wobble
-      },
-      opacity: Math.max(0.01, 1 - opacityEased)
+      transform: { ...currentTransform },
+      opacity: 1 - (1 - endOpacity) * easeInCubic(t),
     };
   }
 };

@@ -1,6 +1,9 @@
 export { bounceIn } from './bounceIn';
 export { slideInLeft } from './slideInLeft';
 export { fadeIn } from './fadeIn';
+export { springScale } from './springScale';
+export { elasticBounce } from './elasticBounce';
+export { glitchSmash } from './glitchSmash';
 export { rotateIn } from './rotateIn';
 export { slideInRight } from './slideInRight';
 export { zoomIn } from './zoomIn';
@@ -16,3 +19,5 @@ export { fadeInRight } from './fadeInRight';
 export { fadeInUp } from './fadeInUp';
 export { slideInDown } from './slideInDown';
 export { slideInUp } from './slideInUp';
+export { smashIn } from './smashIn';
+export { glitchIn } from './glitchIn';

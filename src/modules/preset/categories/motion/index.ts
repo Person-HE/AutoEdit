@@ -1,18 +1,12 @@
 import { AnimationEffect, EffectRenderMode } from '../../PresetTypes';
 import type { PresetDefinition } from '../../../../engine/presets/types';
 import {
-  float,
-  floatX,
   floatY,
+  parallaxFloat,
   orbit,
-  orbitSlow,
   bounce,
   drift,
-  driftSlow,
-  sway,
-  spiral,
-  wave,
-  tutorialFocus
+  sway
 } from '../../../../engine/presets/motion';
 
 function adaptLegacyPreset(legacyPreset: PresetDefinition, renderMode: EffectRenderMode = EffectRenderMode.CANVAS_2D): AnimationEffect {
@@ -24,33 +18,21 @@ function adaptLegacyPreset(legacyPreset: PresetDefinition, renderMode: EffectRen
 }
 
 export {
-  float,
-  floatX,
   floatY,
+  parallaxFloat,
   orbit,
-  orbitSlow,
   bounce,
   drift,
-  driftSlow,
-  sway,
-  spiral,
-  wave,
-  tutorialFocus
+  sway
 };
 
 export const motionPresets: AnimationEffect[] = [
-  adaptLegacyPreset(float),
-  adaptLegacyPreset(floatX),
   adaptLegacyPreset(floatY),
+  adaptLegacyPreset(parallaxFloat),
   adaptLegacyPreset(orbit),
-  adaptLegacyPreset(orbitSlow),
   adaptLegacyPreset(bounce),
   adaptLegacyPreset(drift),
-  adaptLegacyPreset(driftSlow),
-  adaptLegacyPreset(sway),
-  adaptLegacyPreset(spiral),
-  adaptLegacyPreset(wave),
-  adaptLegacyPreset(tutorialFocus)
+  adaptLegacyPreset(sway)
 ];
 
 export default motionPresets;

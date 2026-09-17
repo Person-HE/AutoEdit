@@ -10,6 +10,10 @@ import { useAssetStore } from '../modules/asset/useAssetStore';
 import ClipManager from '../modules/clip/ClipManager';
 import { ClipFactory } from '../modules/clip/ClipTypes';
 import { indexTTSService } from '../services/indexTtsService';
+import { getSortedTrackClips, resolvePlacement } from '../modules/timeline/placement';
+import { usePlayerStore } from './usePlayerStore';
+import { useUIStore } from './useUIStore';
+import type { Effect } from '../types/core';
 
 export interface VoiceOverResult {
   audioUrl: string;
@@ -17,20 +21,76 @@ export interface VoiceOverResult {
   filePath: string;
 }
 
+/** 删除片段并处理文本↔配音互链级联（改变传入 map） */
+function removeClipCascade(clips: Record<string, Clip>, clipId: string) {
+  const clip = clips[clipId];
+  if (!clip) return;
+
+  if (clip.type === 'text' && clip.voiceOver?.linkedClipId) {
+    const linkedId = clip.voiceOver.linkedClipId;
+    if (clips[linkedId]) delete clips[linkedId];
+  }
+
+  if (clip.type === 'audio') {
+    for (const other of Object.values(clips)) {
+      if (other.type === 'text' && other.voiceOver?.linkedClipId === clipId) {
+        const { voiceOver, ...rest } = other;
+        clips[other.id] = rest;
+      }
+    }
+  }
+
+  delete clips[clipId];
+}
+
+/** 分割时拆分效果：入场效果留在前半段，出场效果留在后半段（沿用 ClipManager 语义） */
+function splitEffects(effects: Effect[], part: 'head' | 'tail'): Effect[] {
+  return effects.map(fx => {
+    const copy = { ...fx, id: uuidv4() };
+    if (fx.type === 'entrance' && part === 'tail') return { ...copy, duration: 0 };
+    if (fx.type === 'exit' && part === 'head') return { ...copy, duration: 0 };
+    return copy;
+  });
+}
+
 export interface ProjectState {
   project: Project;
   assets: Asset[];
   copiedClip: Clip | null;
   lastSaved: number;
-  
+
+  /** 撤销栈（只存 project 引用，片段/轨道变更均可回退；素材库导入不在历史范围内） */
+  past: Project[];
+  future: Project[];
+
   initApp: () => Promise<void>;
-  
+
+  canUndo: () => boolean;
+  canRedo: () => boolean;
+  /** 撤销/重做：还原 project 并同步 useTrackStore */
+  undo: () => void;
+  redo: () => void;
+  /**
+   * 打一次手动快照。约定：
+   * - 离散动作(add/remove/split/paste/效果增删/轨道增删)内部自动入栈；
+   * - 连续手势(拖动/修剪/滑杆)由调用方在手势开始时调 markHistory，
+   *   过程中直接用 updateClip(不产生历史)，抬手即完成一个撤销单元。
+   */
+  markHistory: () => void;
+
   addClip: (asset: Asset | null, trackId: string, time: number, type?: Clip['type']) => void;
   updateClip: (clipId: string, changes: Partial<Clip>) => void;
   removeClip: (clipId: string) => void;
+  /** 删除并把同轨后续片段前移补位 */
+  rippleDeleteClip: (clipId: string) => void;
   copyClip: (clipId: string) => void;
   pasteClip: (trackId: string, time: number) => boolean;
-  moveClip: (clipId: string, trackId: string, time: number) => boolean;
+  /** 在播放头处分割（选中片段优先，否则分割所有跨线片段；链接的文本↔配音一起切） */
+  splitAtTime: (time: number, onlySelected?: boolean) => number;
+  /** 创建副本，紧随原片段之后的最近合法位置 */
+  duplicateClip: (clipId: string) => boolean;
+  /** 跨轨/同轨移动（内部做防重叠让位）；opts.history=false 用于手势已自行 markHistory 的场景 */
+  moveClip: (clipId: string, trackId: string, time: number, opts?: { history?: boolean }) => boolean;
   
   addTrack: (type: Track['type']) => void;
   updateTrack: (trackId: string, changes: Partial<Track>) => void;
@@ -41,6 +101,7 @@ export interface ProjectState {
   
   addEffectToClip: (clipId: string, presetId: string) => boolean;
   removeEffectFromClip: (clipId: string, effectId: string) => void;
+  clearClipEffects: (clipId: string) => void;
   updateEffectParams: (clipId: string, effectId: string, params: any) => void;
   
   addTemplateClip: (templateId: string, trackId: string, time: number) => boolean;
@@ -60,7 +121,22 @@ export interface ProjectState {
   exportProject: () => Promise<void>;
 }
 
-export const useProjectStore = create<ProjectState>((set, get) => ({
+export const useProjectStore = create<ProjectState>((set, get) => {
+  const HISTORY_LIMIT = 100;
+
+  const pushHistory = () => {
+    set(state => ({
+      past: [...state.past.slice(-(HISTORY_LIMIT - 1)), state.project],
+      future: [],
+    }));
+  };
+
+  /** 撤销/重做后同步轨道镜像 store，保持双写一致 */
+  const restoreTracks = (p: Project) => {
+    useTrackStore.getState().setTracks(p.tracks || []);
+  };
+
+  return {
   project: {
     id: 'temp',
     name: '加载中...',
@@ -75,11 +151,34 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   assets: [], // 保持向后兼容 - 实际数据来自 useAssetStore
   copiedClip: null,
   lastSaved: Date.now(),
+  past: [],
+  future: [],
+
+  canUndo: () => get().past.length > 0,
+  canRedo: () => get().future.length > 0,
+
+  undo: () => {
+    const { past, future, project } = get();
+    if (!past.length) return;
+    const prev = past[past.length - 1];
+    restoreTracks(prev);
+    set({ project: prev, past: past.slice(0, -1), future: [project, ...future].slice(0, HISTORY_LIMIT) });
+  },
+
+  redo: () => {
+    const { past, future, project } = get();
+    if (!future.length) return;
+    const next = future[0];
+    restoreTracks(next);
+    set({ project: next, past: [...past.slice(-(HISTORY_LIMIT - 1)), project], future: future.slice(1) });
+  },
+
+  markHistory: () => pushHistory(),
 
   initApp: async () => {
     const { project, assets } = await projectService.getLastActiveProject();
-    
-    set({ project, assets });
+
+    set({ project, assets, past: [], future: [] });
     
     // 同步到模块 store
     useAssetStore.getState().setAssets(assets);
@@ -109,14 +208,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }));
   },
 
-  // ==================== 片段操作（使用 ClipManager）====================
+  // ==================== 片段操作 ====================
 
   addClip: (asset, trackId, time, type = 'video') => {
     const state = get();
-    
+
     let clipConfig;
     const isText = type === 'text';
-    
+
     if (isText) {
       clipConfig = {
         type: 'text' as const,
@@ -149,6 +248,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
 
     const newClip = ClipFactory.createClip(clipConfig);
+
+    // 同轨防重叠：吸附到最近合法落位
+    const trackClips = getSortedTrackClips(state.project.clips, trackId);
+    const placedStart = resolvePlacement(trackClips, newClip.duration, Math.max(0, time));
+    if (placedStart === null) return;
+    newClip.startTime = placedStart;
+
+    pushHistory();
 
     set((state) => ({
       project: {
@@ -223,32 +330,60 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   removeClip: (clipId) => {
+    const clip = (get().project.clips || {})[clipId];
+    if (!clip) return;
+    pushHistory();
+
     set(state => {
       const clips = { ...state.project.clips || {} };
-      const clip = clips[clipId];
-
-      if (clip?.type === 'text' && clip.voiceOver?.linkedClipId) {
-        const linkedId = clip.voiceOver.linkedClipId;
-        if (clips[linkedId]) {
-          delete clips[linkedId];
-        }
-      }
-
-      if (clip?.type === 'audio') {
-        const textClipWithLink = Object.values(clips).find(
-          c => c.type === 'text' && c.voiceOver?.linkedClipId === clipId
-        );
-        if (textClipWithLink) {
-          const { voiceOver, ...rest } = textClipWithLink;
-          clips[textClipWithLink.id] = rest;
-        }
-      }
-
-      delete clips[clipId];
-
+      removeClipCascade(clips, clipId);
       return {
         project: { ...state.project, clips }
       };
+    });
+  },
+
+  rippleDeleteClip: (clipId) => {
+    const state = get();
+    const clipsMap = state.project.clips || {};
+    const target = clipsMap[clipId];
+    if (!target) return;
+    pushHistory();
+
+    set(s => {
+      const clips = { ...s.project.clips };
+      // 计算级联删除集合（文本↔配音互链）
+      const removedIds = new Set<string>();
+      const collectRemovals = (id: string) => {
+        if (removedIds.has(id)) return;
+        const c = clips[id];
+        if (!c) return;
+        removedIds.add(id);
+        if (c.type === 'text' && c.voiceOver?.linkedClipId) collectRemovals(c.voiceOver.linkedClipId);
+        if (c.type === 'audio') {
+          for (const other of Object.values(clips)) {
+            if (other.type === 'text' && other.voiceOver?.linkedClipId === id) collectRemovals(other.id);
+          }
+        }
+      };
+      collectRemovals(clipId);
+
+      // 同轨上被删片段所占的时长总和，用于前移补位
+      let shift = 0;
+      for (const id of removedIds) {
+        const c = clips[id];
+        if (c.trackId === target.trackId) shift += c.duration;
+      }
+
+      for (const id of removedIds) delete clips[id];
+
+      for (const c of Object.values(clips)) {
+        if (c.trackId === target.trackId && c.startTime >= target.startTime + 1e-6) {
+          clips[c.id] = { ...c, startTime: Math.max(0, c.startTime - shift) };
+        }
+      }
+
+      return { project: { ...s.project, clips } };
     });
   },
 
@@ -262,13 +397,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const state = get();
     const copied = state.copiedClip;
     const targetTrack = state.project.tracks.find(t => t.id === trackId);
-    
+
     if (!copied || !targetTrack) return false;
 
     // 兼容性检查
     const isAudioTrack = targetTrack.type === 'audio';
     const isTextTrack = targetTrack.type === 'text';
-    
+
     if (isAudioTrack && copied.type !== 'audio') {
       alert("❌ 无法粘贴：格式不匹配 (音频轨道)");
       return false;
@@ -282,13 +417,21 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       return false;
     }
 
-    const newClip = {
+    // 同轨防重叠落位；跨轨道粘贴时剥离配音链接（链接只在原音轨有效）
+    const trackClips = getSortedTrackClips(state.project.clips, trackId);
+    const placedStart = resolvePlacement(trackClips, copied.duration, Math.max(0, time));
+    if (placedStart === null) return false;
+
+    const newClip: Clip = {
       ...copied,
       id: uuidv4(),
-      trackId: trackId,
-      startTime: time,
+      trackId,
+      startTime: placedStart,
       name: `${copied.name} (Copy)`
     };
+    if (trackId !== copied.trackId && newClip.voiceOver) newClip.voiceOver = undefined;
+
+    pushHistory();
 
     set((state) => ({
       project: {
@@ -299,7 +442,95 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     return true;
   },
 
-  moveClip: (clipId, trackId, time) => {
+  splitAtTime: (time, onlySelected = false) => {
+    const state = get();
+    const clips = state.project.clips || {};
+    const selectedId = useUIStore.getState().selectedClipId;
+
+    // 需要分割的片段：选中优先；否则所有跨线片段
+    const targets: string[] = [];
+    if (onlySelected && selectedId && clips[selectedId]) {
+      const c = clips[selectedId];
+      if (time > c.startTime + 1e-6 && time < c.startTime + c.duration - 1e-6) targets.push(selectedId);
+    } else {
+      for (const c of Object.values(clips)) {
+        if (time > c.startTime + 1e-6 && time < c.startTime + c.duration - 1e-6) targets.push(c.id);
+      }
+    }
+    if (!targets.length) return 0;
+
+    // 文本片段联动其配音音频一起切，保持对齐
+    const allTargets = new Set<string>(targets);
+    for (const id of targets) {
+      const c = clips[id];
+      const linkedId = c.type === 'text' ? c.voiceOver?.linkedClipId : undefined;
+      if (linkedId && clips[linkedId]) {
+        const lc = clips[linkedId];
+        if (time > lc.startTime + 1e-6 && time < lc.startTime + lc.duration - 1e-6) allTargets.add(linkedId);
+      }
+    }
+
+    pushHistory();
+
+    set(s => {
+      const next = { ...s.project.clips };
+      for (const id of allTargets) {
+        const clip = next[id];
+        if (!clip) continue;
+        const firstDuration = time - clip.startTime;
+        const secondDuration = clip.duration - firstDuration;
+
+        const firstClip: Clip = {
+          ...clip,
+          id: uuidv4(),
+          duration: firstDuration,
+          name: `${clip.name} (1)`,
+          effects: splitEffects(clip.effects || [], 'head')
+        };
+        const secondClip: Clip = {
+          ...clip,
+          id: uuidv4(),
+          startTime: time,
+          duration: secondDuration,
+          offset: clip.offset + firstDuration,
+          name: `${clip.name} (2)`,
+          effects: splitEffects(clip.effects || [], 'tail')
+        };
+
+        delete next[id];
+        next[firstClip.id] = firstClip;
+        next[secondClip.id] = secondClip;
+      }
+      return { project: { ...s.project, clips: next } };
+    });
+
+    return allTargets.size;
+  },
+
+  duplicateClip: (clipId) => {
+    const state = get();
+    const orig = (state.project.clips || {})[clipId];
+    if (!orig) return false;
+
+    const trackClips = getSortedTrackClips(state.project.clips, orig.trackId, clipId);
+    const wanted = orig.startTime + orig.duration;
+    const placedStart = resolvePlacement(trackClips, orig.duration, wanted);
+    if (placedStart === null) return false;
+
+    const copy: Clip = { ...orig, id: uuidv4(), startTime: placedStart, name: `${orig.name} 副本` };
+
+    pushHistory();
+
+    set(s => ({
+      project: {
+        ...s.project,
+        clips: { ...s.project.clips, [copy.id]: copy }
+      }
+    }));
+    return true;
+  },
+
+  moveClip: (clipId, trackId, time, opts) => {
     const state = get();
     const clip = (state.project.clips || {})[clipId];
     const targetTrack = state.project.tracks.find(t => t.id === trackId);
@@ -313,12 +544,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (isTextTrack && clip.type !== 'text') return false;
     if (targetTrack.type === 'video' && (clip.type === 'audio' || clip.type === 'text')) return false;
 
+    // 同轨防重叠让位
+    const trackClips = getSortedTrackClips(state.project.clips, trackId, clipId);
+    const placedStart = resolvePlacement(trackClips, clip.duration, Math.max(0, time));
+    if (placedStart === null) return false;
+
+    if (opts?.history !== false) pushHistory();
+
     set((state) => ({
       project: {
         ...state.project,
         clips: {
           ...state.project.clips,
-          [clipId]: { ...clip, trackId, startTime: time }
+          [clipId]: { ...clip, trackId, startTime: placedStart }
         }
       }
     }));
@@ -328,6 +566,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   // ==================== 轨道操作（委托给 useTrackStore）====================
 
   addTrack: (type) => {
+    pushHistory();
     useTrackStore.getState().addTrack(type);
     
     // 同步到 project.tracks 以保持兼容
@@ -348,6 +587,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   removeTrack: (trackId) => {
+    if (!get().project.tracks.some(t => t.id === trackId)) return;
+    pushHistory();
     useTrackStore.getState().removeTrack(trackId);
     
     // 删除该轨道上的所有片段并同步
@@ -374,7 +615,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const preset = PRESETS[presetId];
     if (!clip || !preset) return false;
 
-    // 互斥逻辑：1进 1出 1其他
+    pushHistory();
+
+    // 互斥逻辑：1进 1出 1转场 1其他
     let newEffects = [...clip.effects];
     const category = preset.category;
 
@@ -382,6 +625,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         newEffects = newEffects.filter(e => e.type !== 'entrance');
     } else if (category === 'exit') {
         newEffects = newEffects.filter(e => e.type !== 'exit');
+    } else if (category === 'transition') {
+        newEffects = newEffects.filter(e => e.type !== 'transition');
+        if (preset.id.startsWith('transition_')) newEffects = newEffects.filter(e => e.presetId !== preset.id);
     } else {
         newEffects = newEffects.filter(e => e.type === 'entrance' || e.type === 'exit');
     }
@@ -416,6 +662,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   removeEffectFromClip: (clipId, effectId) => {
+    const clip = (get().project.clips || {})[clipId];
+    if (!clip || !clip.effects.some(e => e.id === effectId)) return;
+    pushHistory();
+
     set(state => {
         const clip = (state.project.clips || {})[clipId];
         if (!clip) return {};
@@ -427,6 +677,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             } 
         };
     });
+  },
+
+  clearClipEffects: (clipId) => {
+    const clip = (get().project.clips || {})[clipId];
+    if (!clip || !clip.effects?.length) return;
+    pushHistory();
+
+    set(state => ({
+      project: {
+        ...state.project,
+        clips: { ...state.project.clips, [clipId]: { ...clip, effects: [] } }
+      }
+    }));
   },
 
   updateEffectParams: (clipId, effectId, params) => {
@@ -456,16 +719,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const state = get();
     const template = getTemplate(templateId);
     const track = state.project.tracks.find(t => t.id === trackId);
-    
+
     if (!template || !track) return false;
     if (track.type !== 'video') {
       alert('❌ 模板只能添加到视频轨道');
       return false;
     }
-    
+
     const defaultParams = getTemplateDefaultParams(templateId);
     const initParams = template.initParams ? template.initParams(5) : defaultParams;
-    
+
     const newClip = ClipFactory.createTemplateClip({
       type: 'template',
       templateId,
@@ -474,15 +737,22 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       templateParams: initParams,
       name: template.name
     });
-    
+
+    // 同轨防重叠落位
+    const trackClips = getSortedTrackClips(state.project.clips, trackId);
+    const placedStart = resolvePlacement(trackClips, newClip.duration, Math.max(0, time));
+    if (placedStart === null) return false;
+    newClip.startTime = placedStart;
+
+    pushHistory();
+
     set((state) => ({
       project: {
         ...state.project,
         clips: { ...state.project.clips, [newClip.id]: newClip }
       }
     }));
-    
-    console.log(`✅ Added template clip: ${template.name}`);
+
     return true;
   },
 
@@ -523,6 +793,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       referenceAudioFile,
       { speed }
     );
+
+    pushHistory();
 
     let audioTrack = state.project.tracks.find(t => t.type === 'audio');
     if (!audioTrack) {
@@ -634,6 +906,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const state = get();
     const clip = (state.project.clips || {})[clipId];
     if (!clip || !clip.voiceOver) return;
+    pushHistory();
 
     const linkedClipId = clip.voiceOver.linkedClipId;
     const newClips = { ...state.project.clips };
@@ -654,31 +927,42 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   saveProject: async () => {
     const state = get();
-    if (!state.project) return;
-    
+    if (!state.project || state.project.id === 'temp-load') return;
+
     const assets = useAssetStore.getState().assets;
     await projectService.saveProject(state.project, assets);
     set({ lastSaved: Date.now() });
   },
 
   startAutoSave: () => {
-    const state = get();
-    if (!state.project) return;
-    
-    const assets = useAssetStore.getState().assets;
-    
+    // 兜底周期保存（读取实时状态）
     projectService.startAutoSave(
-      state.project, 
-      assets,
-      () => {
-        set({ lastSaved: Date.now() });
-        console.log('💾 Auto-saved at', new Date().toLocaleTimeString());
-      }
+      () => get().project,
+      () => useAssetStore.getState().assets,
+      () => set({ lastSaved: Date.now() })
     );
+
+    // 主路径：项目引用变化即标记脏，2s 防抖保存
+    (get() as any)._autoSaveUnsub?.();
+    const timers: Set<ReturnType<typeof setTimeout>> = new Set();
+    (useProjectStore as any)._debounceTimers = timers;
+    let lastSavedProject: Project | null = get().project;
+    const unsub = useProjectStore.subscribe((state) => {
+      if (state.project === lastSavedProject) return;
+      lastSavedProject = state.project;
+      timers.forEach(clearTimeout);
+      timers.clear();
+      timers.add(setTimeout(() => { get().saveProject(); }, 2000));
+    });
+    (get() as any)._autoSaveUnsub = unsub;
   },
 
   stopAutoSave: () => {
     projectService.stopAutoSave();
+    const unsub = (get() as any)._autoSaveUnsub;
+    if (unsub) unsub();
+    const timers = (useProjectStore as any)._debounceTimers as Set<ReturnType<typeof setTimeout>> | undefined;
+    if (timers) timers.forEach(clearTimeout);
   },
 
   createNewProject: async (name) => {
@@ -706,7 +990,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set(state => ({
       project: newProject,
       copiedClip: null,
-      lastSaved: Date.now()
+      lastSaved: Date.now(),
+      past: [],
+      future: []
     }));
 
     console.log(`✅ Created new project: ${name}`);
@@ -740,7 +1026,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       set(state => ({
         project: newProject,
         copiedClip: null,
-        lastSaved: Date.now()
+        lastSaved: Date.now(),
+        past: [],
+        future: []
       }));
     }
 
@@ -771,7 +1059,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       set(state => ({
         project: result.project,
         copiedClip: null,
-        lastSaved: Date.now()
+        lastSaved: Date.now(),
+        past: [],
+        future: []
       }));
 
       console.log(`🔄 Switched to project: ${result.project.name}`);
@@ -788,6 +1078,5 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     await projectService.exportProject(state.project, assets);
     console.log(`📦 Exported project: ${state.project.name}`);
   },
-
-
-}));
+  };
+});

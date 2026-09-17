@@ -1,7 +1,7 @@
-// UI 组件模板
 export const uiTemplates = [
-  'card3D', 'cardFlip', 'cardStack', 'glassCard',
-  'elasticButton', 'magnetButton', 'tabs', 'accordion',
-  'spotlightCard', 'borderGlow',
+  'ui_glass_card',
+  'ui_metal_button',
+  'ui_hologram_frame',
+  'ui_carbon_panel',
 ];
 export default uiTemplates;

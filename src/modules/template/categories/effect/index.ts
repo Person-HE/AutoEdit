@@ -1,7 +1,8 @@
-// Effect 特效模板
 export const effectTemplates = [
-  'fire', 'smoke', 'shockwave', 'energyRing',
-  'particleExplosion', 'haloExpand', 'silk',
-  'dataStream', 'codeRain', 'magicCircle',
+  'effect_screen_glitch',
+  'effect_shockwave_burst',
+  'effect_energy_field',
+  'effect_chromatic_glow',
+  'effect_neon_scanlines',
 ];
 export default effectTemplates;

@@ -2,34 +2,32 @@ import { PresetDefinition } from '../types';
 import { dampedOscillation } from '../../utils/easing';
 
 export const pulseGlow: PresetDefinition = {
-  id: 'emphasis_pulseGlow',
-  name: '发光脉冲 (Pulse Glow)',
+  id: 'emphasis_pulse_glow',
+  name: '呼吸光晕 (Breathing Glow)',
+  description: '节奏感呼吸式光晕缩放',
   category: 'emphasis',
+  quality: 'viral',
+  mood: 'calm',
+  material: 'glass',
+  dimensions: { materialOptics: true, physicsMotion: true, spatialDepth: true, styleEmotion: true },
+  physics: ['dampedOscillation'],
   schema: [
-    { key: 'speed', label: '速度', type: 'number', default: 2, min: 0.5, max: 5, step: 0.1 },
-    { key: 'strength', label: '强度', type: 'number', default: 0.12, min: 0.02, max: 0.3, step: 0.01 }
+    { key: 'glowColor', label: '发光色', type: 'color', default: '#00f0ff' },
   ],
   apply: (progress, params, currentTransform) => {
-    const speed = Math.max(0.5, Math.min(5, params.speed || 2));
-    const strength = Math.max(0.02, Math.min(0.3, params.strength || 0.12));
-    const p = Math.max(0, Math.min(1, progress));
+    const glowColor = params.glowColor || '#00f0ff';
+    const t = Math.max(0, Math.min(1, progress));
 
-    const frequency = speed * 1.5 + 2;
-    const dampingRatio = 0.25;
-    const oscillation = dampedOscillation(p, frequency, dampingRatio);
-    const scaleDelta = 1 + oscillation * strength * 1.5;
-
-    const glowIntensity = Math.abs(oscillation) * strength * 8;
-    const brightness = 1 + glowIntensity * 0.6;
-    const blur = glowIntensity * 3;
+    const breathe = Math.sin(t * Math.PI * 4) * 0.03;
+    const scale = 1 + breathe;
 
     return {
       transform: {
         ...currentTransform,
-        scale: Math.max(0.001, currentTransform.scale * scaleDelta)
+        scale: Math.max(0.001, currentTransform.scale * scale),
       },
       opacity: 1,
-      filter: `brightness(${brightness.toFixed(2)}) drop-shadow(0 0 ${blur.toFixed(1)}px rgba(255,255,255,${(glowIntensity * 0.5).toFixed(2)}))`
+      filter: `drop-shadow(0 0 ${25 + breathe * 400}px ${glowColor}) drop-shadow(0 0 ${50}px ${glowColor}66)`
     };
   }
 };

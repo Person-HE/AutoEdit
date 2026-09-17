@@ -37,6 +37,20 @@ export const easing = {
   bezierEase: EasingLib.bezierEase,
 };
 
+// 伪随机哈希（确定性）
+export const hash = {
+  float: (seed: number): number => {
+    const x = Math.sin(seed * 12.9898) * 43758.5453;
+    return x - Math.floor(x);
+  },
+  range: (seed: number, min: number, max: number): number => {
+    return min + hash.float(seed) * (max - min);
+  },
+  int: (seed: number, min: number, max: number): number => {
+    return Math.floor(hash.range(seed, min, max + 1));
+  }
+};
+
 export const adaptiveLayout = {
   calculateFontSize: (
     ctx: CanvasRenderingContext2D,
@@ -147,20 +161,18 @@ export const colorUtils = {
 };
 
 export const palettes = {
-  aurora: ['#00ff87', '#60efff', '#0061ff', '#7b2ff7', '#ff00e5'],
   cyberpunk: ['#ff003c', '#ff6b00', '#ffd000', '#00ff87', '#00d4ff', '#7b2ff7'],
-  sunset: ['#ff6b35', '#f7c59f', '#efefd0', '#004e89', '#1a659e'],
-  ocean: ['#0a1628', '#0d2137', '#134074', '#13678a', '#45b7d1', '#88e0ef'],
   neon: ['#ff0080', '#ff00ff', '#8000ff', '#0040ff', '#00bfff', '#00ff80'],
+  matrix: ['#000000', '#001100', '#003300', '#006600', '#00cc00', '#00ff00'],
   fire: ['#1a0000', '#4d0000', '#990000', '#ff1a1a', '#ff6600', '#ffcc00', '#ffff99'],
   galaxy: ['#0b0d17', '#1a1a2e', '#16213e', '#0f3460', '#533483', '#e94560'],
   glass: ['#ffffff', '#e8f4f8', '#c5e4ed', '#a0d2db', '#7ec8c8'],
   premium: ['#0f0f0f', '#1a1a2e', '#2d2d44', '#e8d5b7', '#f5e6cc', '#ffffff'],
-  matrix: ['#000000', '#001100', '#003300', '#006600', '#00cc00', '#00ff00'],
   dream: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'],
   ember: ['#0d0d0d', '#1a0a00', '#3d1500', '#7a2e00', '#cc5500', '#ff8800', '#ffbb33'],
   frost: ['#e8f4f8', '#c5e4ed', '#88d4e8', '#45b7d1', '#2e8ba6', '#1a659e'],
-  royal: ['#0a0a1a', '#1a1a3e', '#2d1b69', '#5b21b6', '#7c3aed', '#a78bfa', '#c4b5fd'],
+  terminal: ['#050a08', '#00ff9d', '#00cc6a', '#008f4b', '#ffffff'],
+  hologram: ['#00f0ff', '#ff00a0', '#7b2ff7', '#0a0014'],
 };
 
 export const drawUtils = {
@@ -225,25 +237,6 @@ export const drawUtils = {
       ctx.fillRect(x - r, y - r, r * 2, r * 2);
     }
   },
-  premiumGradient: (
-    ctx: CanvasRenderingContext2D,
-    x: number, y: number, width: number, height: number,
-    colors: string[], angle: number = 135
-  ): CanvasGradient => {
-    const rad = (angle * Math.PI) / 180;
-    const cx = x + width / 2;
-    const cy = y + height / 2;
-    const len = Math.max(width, height);
-    const x1 = cx - Math.cos(rad) * len / 2;
-    const y1 = cy - Math.sin(rad) * len / 2;
-    const x2 = cx + Math.cos(rad) * len / 2;
-    const y2 = cy + Math.sin(rad) * len / 2;
-    const grad = ctx.createLinearGradient(x1, y1, x2, y2);
-    colors.forEach((color, i) => {
-      grad.addColorStop(i / (colors.length - 1), color);
-    });
-    return grad;
-  },
   radialGlow: (
     ctx: CanvasRenderingContext2D,
     cx: number, cy: number, radius: number,
@@ -257,70 +250,6 @@ export const drawUtils = {
     grad.addColorStop(1, colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0));
     ctx.fillStyle = grad;
     ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
-  },
-  glassBackground: (
-    ctx: CanvasRenderingContext2D,
-    x: number, y: number, width: number, height: number,
-    radius: number, opacity: number = 0.15,
-    borderColor: string = 'rgba(255,255,255,0.2)',
-    blur: number = 20
-  ): void => {
-    ctx.save();
-    drawUtils.roundedRect(ctx, x, y, width, height, radius);
-    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-    ctx.fill();
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.restore();
-  },
-  specularHighlight: (
-    ctx: CanvasRenderingContext2D,
-    x: number, y: number, width: number, height: number,
-    radius: number, opacity: number = 0.15
-  ): void => {
-    ctx.save();
-    drawUtils.roundedRect(ctx, x, y, width, height * 0.4, radius);
-    const grad = ctx.createLinearGradient(x, y, x, y + height * 0.4);
-    grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
-    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.restore();
-  },
-  shimmerLine: (
-    ctx: CanvasRenderingContext2D,
-    x: number, y: number, width: number, height: number,
-    progress: number, color: string = '#ffffff', intensity: number = 0.6
-  ): void => {
-    const rgb = colorUtils.hexToRgb(color.startsWith('#') ? color : '#ffffff');
-    const shimmerX = x + width * progress;
-    const shimmerWidth = width * 0.15;
-    const grad = ctx.createLinearGradient(
-      shimmerX - shimmerWidth, y,
-      shimmerX + shimmerWidth, y
-    );
-    grad.addColorStop(0, colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0));
-    grad.addColorStop(0.5, colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, intensity));
-    grad.addColorStop(1, colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0));
-    ctx.fillStyle = grad;
-    ctx.fillRect(x, y, width, height);
-  },
-  noiseTexture: (
-    ctx: CanvasRenderingContext2D,
-    x: number, y: number, width: number, height: number,
-    opacity: number = 0.03, seed: number = 0
-  ): void => {
-    const imageData = ctx.getImageData(x, y, width, height);
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      const noise = (Math.sin(i * 12.9898 + seed * 78.233) * 43758.5453) % 1;
-      const n = (noise - 0.5) * 255 * opacity;
-      data[i] = Math.max(0, Math.min(255, data[i] + n));
-      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n));
-      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n));
-    }
-    ctx.putImageData(imageData, x, y);
   },
   vignette: (
     ctx: CanvasRenderingContext2D,
@@ -351,127 +280,166 @@ export const drawUtils = {
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
   },
-  lightBeam: (
+  noiseTexture: (
     ctx: CanvasRenderingContext2D,
-    x1: number, y1: number, x2: number, y2: number,
-    color: string, width: number = 2, opacity: number = 0.6,
-    glowSize: number = 20
+    x: number, y: number, width: number, height: number,
+    opacity: number = 0.03, seed: number = 0
   ): void => {
-    const rgb = colorUtils.hexToRgb(color.startsWith('#') ? color : '#ffffff');
+    const imageData = ctx.getImageData(x, y, width, height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const noise = (Math.sin(i * 12.9898 + seed * 78.233) * 43758.5453) % 1;
+      const n = (noise - 0.5) * 255 * opacity;
+      data[i] = Math.max(0, Math.min(255, data[i] + n));
+      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n));
+      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n));
+    }
+    ctx.putImageData(imageData, x, y);
+  },
+  scanlines: (
+    ctx: CanvasRenderingContext2D,
+    width: number, height: number,
+    lineHeight: number = 4, opacity: number = 0.12
+  ): void => {
     ctx.save();
     ctx.globalAlpha = opacity;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = glowSize;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-    ctx.lineWidth = width * 0.5;
-    ctx.shadowBlur = glowSize * 2;
-    ctx.strokeStyle = colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0.5);
-    ctx.stroke();
+    ctx.fillStyle = '#000000';
+    for (let y = -height / 2; y < height / 2; y += lineHeight * 2) {
+      ctx.fillRect(-width / 2, y, width, lineHeight);
+    }
     ctx.restore();
   },
-  textWithShadow: (
+  // 金属拉丝材质
+  metalTexture: (
     ctx: CanvasRenderingContext2D,
-    text: string, x: number, y: number,
-    fillColor: string, shadowColor: string = 'rgba(0,0,0,0.5)',
-    shadowBlur: number = 8, shadowOffsetX: number = 2, shadowOffsetY: number = 2
+    x: number, y: number, width: number, height: number,
+    baseColor: string = '#2a2a2a', reflection: number = 0.3
   ): void => {
+    const rgb = colorUtils.hexToRgb(baseColor);
     ctx.save();
-    ctx.shadowColor = shadowColor;
-    ctx.shadowBlur = shadowBlur;
-    ctx.shadowOffsetX = shadowOffsetX;
-    ctx.shadowOffsetY = shadowOffsetY;
-    ctx.fillStyle = fillColor;
-    ctx.fillText(text, x, y);
-    ctx.restore();
-  },
-  gradientText: (
-    ctx: CanvasRenderingContext2D,
-    text: string, x: number, y: number,
-    colors: string[], angle: number = 135,
-    maxWidth?: number
-  ): void => {
-    const metrics = ctx.measureText(text);
-    const tw = maxWidth || metrics.width;
-    const th = parseInt(ctx.font) || 24;
-    const grad = drawUtils.premiumGradient(ctx, x, y - th * 0.8, tw, th, colors, angle);
+    const grad = ctx.createLinearGradient(x, y, x, y + height);
+    for (let i = 0; i <= 20; i++) {
+      const t = i / 20;
+      const wave = Math.sin(t * Math.PI * 4) * 0.5 + 0.5;
+      const alpha = reflection * (0.3 + wave * 0.7);
+      grad.addColorStop(t, colorUtils.withAlpha(
+        Math.min(255, rgb.r + 40 * wave),
+        Math.min(255, rgb.g + 40 * wave),
+        Math.min(255, rgb.b + 40 * wave),
+        alpha
+      ));
+    }
     ctx.fillStyle = grad;
-    ctx.fillText(text, x, y);
-  },
-  neonText: (
-    ctx: CanvasRenderingContext2D,
-    text: string, x: number, y: number,
-    color: string, intensity: number = 1
-  ): void => {
-    const rgb = colorUtils.hexToRgb(color.startsWith('#') ? color : '#ffffff');
-    ctx.save();
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 20 * intensity;
-    ctx.fillStyle = colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0.8);
-    ctx.fillText(text, x, y);
-    ctx.shadowBlur = 40 * intensity;
-    ctx.fillStyle = colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0.4);
-    ctx.fillText(text, x, y);
-    ctx.shadowBlur = 60 * intensity;
-    ctx.fillStyle = colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0.2);
-    ctx.fillText(text, x, y);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(text, x, y);
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.fillRect(x, y, width, height);
     ctx.restore();
   },
-  borderBeam: (
+  // 碳纤维编织纹理
+  carbonTexture: (
     ctx: CanvasRenderingContext2D,
-    x: number, y: number, width: number, height: number,
-    radius: number, progress: number,
-    color1: string, color2: string, beamWidth: number = 60
+    x: number, y: number, width: number, height: number
   ): void => {
-    const perimeter = 2 * (width + height);
-    const pos = progress * perimeter;
     ctx.save();
-    ctx.beginPath();
-    drawUtils.roundedRect(ctx, x, y, width, height, radius);
-    ctx.clip();
-    const drawBeamSegment = (bx: number, by: number) => {
-      const grad = ctx.createRadialGradient(bx, by, 0, bx, by, beamWidth);
-      const rgb1 = colorUtils.hexToRgb(color1);
-      const rgb2 = colorUtils.hexToRgb(color2);
-      grad.addColorStop(0, colorUtils.withAlpha(rgb1.r, rgb1.g, rgb1.b, 0.9));
-      grad.addColorStop(0.5, colorUtils.withAlpha(rgb2.r, rgb2.g, rgb2.b, 0.4));
-      grad.addColorStop(1, colorUtils.withAlpha(rgb2.r, rgb2.g, rgb2.b, 0));
-      ctx.fillStyle = grad;
-      ctx.fillRect(bx - beamWidth, by - beamWidth, beamWidth * 2, beamWidth * 2);
-    };
-    if (pos < width) drawBeamSegment(x + pos, y);
-    else if (pos < width + height) drawBeamSegment(x + width, y + (pos - width));
-    else if (pos < 2 * width + height) drawBeamSegment(x + width - (pos - width - height), y + height);
-    else drawBeamSegment(x, y + height - (pos - 2 * width - height));
+    ctx.strokeStyle = 'rgba(80,80,80,0.15)';
+    ctx.lineWidth = 1;
+    const size = 12;
+    for (let i = -height; i < width + height; i += size) {
+      ctx.beginPath();
+      ctx.moveTo(x + i, y);
+      ctx.lineTo(x + i + height, y + height);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + i + width, y);
+      ctx.lineTo(x + i + width - height, y + height);
+      ctx.stroke();
+    }
     ctx.restore();
   },
-  meshGradient: (
+  // 玻璃折射高光
+  glassHighlight: (
     ctx: CanvasRenderingContext2D,
     x: number, y: number, width: number, height: number,
-    colors: string[], time: number = 0, intensity: number = 0.3
+    radius: number, opacity: number = 0.2
   ): void => {
     ctx.save();
-    ctx.globalAlpha = intensity;
-    colors.forEach((color, i) => {
-      const angle = (i / colors.length) * Math.PI * 2 + time;
-      const cx = x + width / 2 + Math.cos(angle) * width * 0.3;
-      const cy = y + height / 2 + Math.sin(angle) * height * 0.3;
-      const r = Math.max(width, height) * 0.5;
-      const rgb = colorUtils.hexToRgb(color);
-      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      grad.addColorStop(0, colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0.8));
-      grad.addColorStop(0.5, colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0.3));
-      grad.addColorStop(1, colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0));
-      ctx.fillStyle = grad;
-      ctx.fillRect(x, y, width, height);
-    });
+    drawUtils.roundedRect(ctx, x, y, width, height * 0.45, radius);
+    const grad = ctx.createLinearGradient(x, y, x, y + height * 0.45);
+    grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+    grad.addColorStop(0.5, `rgba(255, 255, 255, ${opacity * 0.3})`);
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.restore();
+  },
+  // 3D 透视网格（空间感）
+  perspectiveGrid: (
+    ctx: CanvasRenderingContext2D,
+    width: number, height: number,
+    horizonY: number, time: number,
+    color: string = '#00f0ff', speed: number = 1
+  ): void => {
+    const rgb = colorUtils.hexToRgb(color);
+    const fov = 400;
+    const spacingZ = 80;
+    const offsetZ = (time * speed * 60) % spacingZ;
+
+    ctx.save();
+    ctx.strokeStyle = color;
+
+    // 纵向汇聚线
+    for (let i = -12; i <= 12; i++) {
+      const x = i * width / 12;
+      ctx.globalAlpha = 0.1 + 0.2 * (1 - Math.abs(i) / 12);
+      ctx.beginPath();
+      ctx.moveTo(x * 0.05, horizonY);
+      ctx.lineTo(x * 4, height / 2);
+      ctx.stroke();
+    }
+
+    // 横向深度线
+    for (let z = 50; z < 2500; z += spacingZ) {
+      const actualZ = z - offsetZ;
+      if (actualZ <= 10) continue;
+      const scale = fov / actualZ;
+      const y = horizonY + (height / 2 - horizonY) * (1 - scale);
+      if (y > height / 2 || y < horizonY) continue;
+      const alpha = Math.min(0.5, scale * 1.2);
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = 1 + scale;
+      ctx.beginPath();
+      ctx.moveTo(-width, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 地平线辉光
+    const horizonGrad = ctx.createLinearGradient(0, horizonY - 80, 0, horizonY + 160);
+    horizonGrad.addColorStop(0, colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0));
+    horizonGrad.addColorStop(0.5, colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0.2));
+    horizonGrad.addColorStop(1, colorUtils.withAlpha(rgb.r, rgb.g, rgb.b, 0));
+    ctx.fillStyle = horizonGrad;
+    ctx.fillRect(-width / 2, horizonY - 80, width, 240);
+  },
+  // 流体波纹（物理运动）
+  fluidRipple: (
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number, width: number, height: number,
+    time: number, color: string = '#00f0ff', frequency: number = 3
+  ): void => {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < frequency; i++) {
+      ctx.globalAlpha = 0.1 + 0.2 * (1 - i / frequency);
+      ctx.beginPath();
+      for (let px = -width / 2; px <= width / 2; px += 10) {
+        const py = y + Math.sin(px * 0.015 + time * 3 + i) * 20 * Math.exp(-Math.abs(px) / width);
+        if (px === -width / 2) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
     ctx.restore();
   }
 };
@@ -493,6 +461,13 @@ export const animationUtils = {
     const totalDuration = 1 + (total - 1) * (1 - overlap);
     const startTime = index * (1 - overlap);
     return Math.max(0, Math.min(1, (progress * totalDuration - startTime)));
+  },
+  // 弹性入场曲线
+  elasticEnter: (t: number, overshoot: number = 1.2): number => {
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    const s = Math.sin(t * Math.PI * (2.5 + overshoot)) * Math.exp(-t * 5);
+    return t + s * 0.1 * (1 - t);
   }
 };
 
@@ -549,5 +524,5 @@ export abstract class TemplateBase {
 }
 
 export default {
-  easing, adaptiveLayout, colorUtils, palettes, drawUtils, animationUtils, paramGuard, TemplateBase
+  easing, adaptiveLayout, colorUtils, palettes, drawUtils, animationUtils, paramGuard, TemplateBase, hash
 };

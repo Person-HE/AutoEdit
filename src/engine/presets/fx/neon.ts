@@ -1,30 +1,31 @@
 import { PresetDefinition } from '../types';
-import { perlinNoise1D } from '../../utils/easing';
+import { dampedOscillation } from '../../utils/easing';
 
 export const neon: PresetDefinition = {
   id: 'fx_neon',
-  name: '霓虹效果 (Neon)',
+  name: '霓虹灯管 (Neon Tube)',
+  description: '模拟真实霓虹灯管的闪烁和发光',
   category: 'fx',
+  quality: 'viral',
+  mood: 'mysterious',
+  material: 'neon',
+  dimensions: { materialOptics: true, physicsMotion: false, spatialDepth: true, styleEmotion: true },
+  physics: ['dampedOscillation'],
   schema: [
-    { key: 'color', label: '颜色', type: 'color', default: '#ff00ff' },
-    { key: 'intensity', label: '强度', type: 'number', default: 25, min: 0, max: 100, step: 5 },
-    { key: 'spread', label: '扩散', type: 'number', default: 15, min: 0, max: 50, step: 1 }
+    { key: 'glowColor', label: '发光色', type: 'color', default: '#ff00a0' },
+    { key: 'flicker', label: '闪烁强度', type: 'number', default: 0.25, min: 0, max: 1, step: 0.05 },
   ],
   apply: (progress, params, currentTransform) => {
-    const color = params.color || '#ff00ff';
-    const intensity = Math.max(0, Math.min(100, params.intensity || 25));
-    const spread = Math.max(0, Math.min(50, params.spread || 15));
-    const p = Math.max(0, Math.min(1, progress));
+    const glowColor = params.glowColor || '#ff00a0';
+    const flicker = Math.max(0, Math.min(1, params.flicker || 0.25));
+    const t = Math.max(0, Math.min(1, progress));
 
-    const flickerNoise = perlinNoise1D(p, 12, 0) * 0.3 + perlinNoise1D(p, 25, 99) * 0.15;
-    const flickerFactor = 0.7 + flickerNoise;
-    const glowIntensity = intensity * flickerFactor;
+    const flick = 1 + dampedOscillation(t, 8, 0.5) * flicker;
 
     return {
       transform: currentTransform,
       opacity: 1,
-      filter: `brightness(1.2) drop-shadow(0 0 ${spread * flickerFactor}px ${color}) drop-shadow(0 0 ${spread * 2 * flickerFactor}px ${color}) drop-shadow(0 0 ${spread * 4 * flickerFactor}px ${color})`,
-      color: color
+      filter: `drop-shadow(0 0 15px ${glowColor}) drop-shadow(0 0 40px ${glowColor}${Math.floor(flick * 128).toString(16).padStart(2,'0')}) brightness(${1 + flick * 0.1})`
     };
   }
 };

@@ -1,38 +1,32 @@
 import { PresetDefinition } from '../types';
-import { perlinNoise1D } from '../../utils/easing';
+import { dampedOscillation } from '../../utils/easing';
 
 export const scanline: PresetDefinition = {
   id: 'fx_scanline',
-  name: '扫描线效果 (Scanline)',
+  name: '扫描线叠加 (Scanline Overlay)',
+  description: '复古 CRT 扫描线效果，增强怀旧科技感',
   category: 'fx',
+  quality: 'viral',
+  mood: 'mysterious',
+  material: 'carbon',
+  dimensions: { materialOptics: true, physicsMotion: false, spatialDepth: false, styleEmotion: true },
+  physics: ['dampedOscillation'],
   schema: [
-    { key: 'opacity', label: '线条透明度', type: 'number', default: 0.3, min: 0, max: 1, step: 0.05 },
-    { key: 'spacing', label: '线条间距', type: 'number', default: 4, min: 2, max: 10, step: 1 },
-    { key: 'animate', label: '动态扫描', type: 'boolean', default: true }
+    { key: 'lineColor', label: '线条色', type: 'color', default: '#00f0ff' },
   ],
   apply: (progress, params, currentTransform) => {
-    const opacity = Math.max(0, Math.min(1, params.opacity || 0.3));
-    const spacing = Math.max(2, Math.min(10, params.spacing || 4));
-    const animate = params.animate !== false;
-    const p = Math.max(0, Math.min(1, progress));
+    const lineColor = params.lineColor || '#00f0ff';
+    const t = Math.max(0, Math.min(1, progress));
 
-    const noiseVariation = perlinNoise1D(p, 3, 0) * 0.05;
-    const scanOffset = animate
-      ? p * 100 + noiseVariation * 20
-      : 0;
+    const roll = Math.sin(t * Math.PI * 6) * 2;
 
     return {
-      transform: currentTransform,
+      transform: {
+        ...currentTransform,
+        y: currentTransform.y + roll,
+      },
       opacity: 1,
-      filter: `contrast(1.1) brightness(0.95)`,
-      backgroundImage: `repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent ${spacing - 1}px,
-        rgba(0, 0, 0, ${opacity}) ${spacing - 1}px,
-        rgba(0, 0, 0, ${opacity}) ${spacing}px
-      )`,
-      backgroundPosition: `0 ${scanOffset}%`
+      filter: `drop-shadow(0 0 4px ${lineColor}) contrast(1.1)`
     };
   }
 };

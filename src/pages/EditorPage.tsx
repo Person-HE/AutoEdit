@@ -1,15 +1,18 @@
 import React, { useEffect } from 'react';
-import { OptimizedWorkbenchLayout } from '../layout/OptimizedWorkbenchLayout';
+import { WorkbenchLayout } from '../layout/WorkbenchLayout';
 import { useProjectStore } from '../store/useProjectStore';
+import { useShortcuts } from '../hooks/useShortcuts';
 
 const EditorPage: React.FC = () => {
-  const { initApp } = useProjectStore();
+  const initApp = useProjectStore(s => s.initApp);
 
   useEffect(() => {
     initApp();
   }, []);
 
-  return <OptimizedWorkbenchLayout />;
+  useShortcuts();
+
+  return <WorkbenchLayout />;
 };
 
 export default EditorPage;

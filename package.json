@@ -16,7 +16,12 @@
       ".ts"
     ],
     "moduleNameMapper": {
-      "^(\\.{1,2}/.*)\\.js$": "$1"
+      "^(\\.{1,2}/.*)\\.js$": "$1",
+      "^uuid$": "<rootDir>/node_modules/uuid/dist/index.js",
+      "^../modules/ai-director/services/AIService$": "<rootDir>/src/__mocks__/AIService.ts",
+      "^../../modules/ai-director/services/AIService$": "<rootDir>/src/__mocks__/AIService.ts",
+      "^\\.\\./services/AIService$": "<rootDir>/src/__mocks__/AIService.ts",
+      "^\\.\\./\\.\\./modules/ai-director/services/AIService$": "<rootDir>/src/__mocks__/AIService.ts"
     },
     "transform": {
       "^.+\\.tsx?$": [
@@ -30,10 +35,16 @@
     "testEnvironment": "jsdom",
     "testMatch": [
       "**/__tests__/**/*.test.ts"
-    ]
+    ],
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "setupFilesAfterEnv": []
   },
   "dependencies": {
+
     "@gsap/react": "^2.1.2",
+    "@mediapipe/tasks-vision": "^0.10.17",
     "@react-spring/core": "^10.0.3",
     "@react-spring/three": "^10.0.3",
     "@react-spring/web": "^10.0.3",

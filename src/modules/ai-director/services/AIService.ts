@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 export interface AIProviderConfig {
   id: string;
   name: string;
@@ -168,7 +170,13 @@ class AIService {
         body.thinking = { type: 'enabled' };
       }
 
-      const response = await fetch(provider.endpoint, {
+      // 兼容用户填写 base URL（如 https://api.example.com/v1）或完整 endpoint
+      let endpoint = provider.endpoint.trim();
+      if (endpoint.endsWith('/v1') || endpoint.endsWith('/v1/')) {
+        endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
+      }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,11 +193,22 @@ class AIService {
 
       const data = await response.json();
 
-      if (data.choices?.[0]?.message?.content) {
-        return data.choices[0].message.content;
+      // 兼容标准 OpenAI 格式及部分非标准格式
+      const content =
+        data.choices?.[0]?.message?.content ??
+        data.choices?.[0]?.text ??
+        data.output ??
+        data.response ??
+        data.result ??
+        data.content;
+
+      if (content && typeof content === 'string') {
+        return content;
       }
 
-      throw new Error('Invalid API response');
+      throw new Error(
+        `Invalid API response: ${JSON.stringify(data).slice(0, 300)}`
+      );
     } catch (error) {
       console.error('AI API call failed:', error);
       throw error;
@@ -453,6 +472,72 @@ class AIService {
       layoutId: string;
       presetId: string;
     }>>(result, 'lines');
+  }
+
+  async designViralContent(analysis: any, platform: string = '通用'): Promise<any> {
+    const systemPrompt = `你是一位 viral short-form video 内容设计专家。请基于用户提供的内容分析，生成完整的内容设计方案。
+
+必须返回严格JSON格式：
+{
+  "hookScript": "前3秒钩子文案（不超过15字）",
+  "hookVisual": "钩子画面的视觉描述",
+  "fullScript": ["第一句", "第二句", ...],
+  "emotionDesign": {
+    "curve": [0, 0.3, 0.8, 0.5, 0.9, 0.4],
+    "keyTurningPoints": ["转折点1", "转折点2"]
+  },
+  "valueDeliveryPlan": {
+    "promise": "价值承诺",
+    "socialCurrency": "社交货币点"
+  },
+  "personaExpression": "人设标签",
+  "interactionScripts": ["点赞", "评论", "关注"],
+  "viralScore": 85
+}
+
+要求：
+- 钩子要制造冲突、好奇或情绪共鸣
+- 每句文案不超过10字
+- 20秒视频至少6-10个信息点
+- 结尾必须有明确CTA
+- 情绪曲线要有起伏`;
+
+    const userMessage = `目标平台：${platform}\n\n内容分析：\n${JSON.stringify(analysis, null, 2)}\n\n请生成爆款内容设计方案，只返回JSON。`;
+
+    const result = await this.callAIWithRetry([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage },
+    ], { temperature: 0.7 });
+
+    return this.parseJSONResponse(result);
+  }
+
+  async runViralChecklist(design: any, analysis: any): Promise<any> {
+    const systemPrompt = `你是一位短视频爆款审核专家。请基于内容设计方案和分析结果，用10问法检查视频是否能爆。
+
+必须返回严格JSON格式：
+{
+  "totalScore": 85,
+  "verdict": "likely_viral",
+  "verdictReason": "判定理由",
+  "checks": [
+    { "name": "选题吸引力", "passed": true, "score": 9, "suggestion": "建议" }
+  ],
+  "criticalIssues": [],
+  "optimizationPlan": ["优化点1", "优化点2"]
+}
+
+verdict 只能是：likely_viral / needs_optimization / unlikely_viral
+10个维度：选题吸引力、钩子强度、价值交付、结构节奏、情绪曲线、真实可信、人设记忆点、互动引导、平台适配、数据潜力`;
+
+    const userMessage = `内容设计方案：\n${JSON.stringify(design, null, 2)}\n\n内容分析：\n${JSON.stringify(analysis, null, 2)}\n\n请进行爆款检查，只返回JSON。`;
+
+    const result = await this.callAIWithRetry([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage },
+    ], { temperature: 0.5 });
+
+    return this.parseJSONResponse(result);
   }
 }
 

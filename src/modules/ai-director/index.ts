@@ -21,8 +21,6 @@ export { toolSystem, ToolSystem } from './core/ToolSystem';
 
 // Services
 export { AIService, aiService } from './services/AIService';
-export { AIDirectorService, aiDirectorService, generateAIVideo } from './services/AIDirectorService';
-export type { AIDirectorProgress, AIDirectorResult } from './services/AIDirectorService';
 
 // Prompts
 export { SYSTEM_PROMPTS, ENTRANCE_PRESETS_LIST, EXIT_PRESETS_LIST, LAYOUT_SYSTEM, getSystemPrompt } from './prompts/systemPrompts';
@@ -43,6 +41,8 @@ export { analyzeTool } from './tools/AnalyzeTool';
 export { promptGeneratorTool } from './tools/PromptGeneratorTool';
 export { shotGeneratorTool } from './tools/ShotGeneratorTool';
 export { textProcessorTool } from './tools/TextProcessorTool';
+export { contentDesignTool } from './tools/ContentDesignTool';
+export { viralChecklistTool } from './tools/ViralChecklistTool';
 export { addClipTool } from './tools/AddClipTool';
 export { addAssetTool } from './tools/AddAssetTool';
 export { useAssetTool } from './tools/UseAssetTool';
@@ -62,16 +62,3 @@ export { projectSettingsTool } from './tools/ProjectSettingsTool';
 export { exportVideoTool } from './tools/ExportVideoTool';
 export { observeProjectTool } from './tools/ObserveProjectTool';
 export { listResourcesTool } from './tools/ListResourcesTool';
-
-// Schema
-export type {
-  AIScriptSchema,
-  AIScene,
-  AIElement,
-  AIAnimation,
-  AITransition,
-  AIAssetReference,
-} from './schema/AIScriptSchema';
-export { SCHEMA_VALIDATION_RULES } from './schema/AIScriptSchema';
-export { aiscriptValidator } from './schema/AIScriptValidator';
-export type { ValidationResult, ValidationError, ValidationWarning } from './schema/AIScriptValidator';

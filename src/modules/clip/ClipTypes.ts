@@ -44,7 +44,13 @@ export function createTransform(partial?: Partial<Transform>): ValidatedTransfor
     x: partial?.x ?? 0,
     y: partial?.y ?? 0,
     scale: partial?.scale ?? 1,
-    rotation: partial?.rotation ?? 0
+    rotation: partial?.rotation ?? 0,
+    rotateX: partial?.rotateX ?? 0,
+    rotateY: partial?.rotateY ?? 0,
+    rotateZ: partial?.rotateZ ?? 0,
+    depthZ: partial?.depthZ ?? 0,
+    skewX: partial?.skewX ?? 0,
+    skewY: partial?.skewY ?? 0,
   };
 
   return {
@@ -84,6 +90,7 @@ export interface ClipFactoryConfigBase {
   duration?: number;
   name?: string;
   transform?: Partial<Transform>;
+  style?: Partial<Clip['style']>;
 }
 
 export interface TextClipConfig extends ClipFactoryConfigBase {
@@ -124,7 +131,7 @@ export class ClipFactory {
       duration: config.duration ?? 5,
       offset: 0,
       transform: createTransform(config.transform),
-      style: { opacity: 1, zIndex: 1 },
+      style: { opacity: 1, zIndex: 1, ...config.style },
       textData: {
         content: config.textData?.content ?? '双击编辑文本',
         fontSize: config.textData?.fontSize ?? 60,
@@ -148,7 +155,7 @@ export class ClipFactory {
       duration: config.duration ?? (isImage ? 5 : 10),
       offset: config.offset ?? 0,
       transform: createTransform(config.transform),
-      style: { opacity: 1, zIndex: 1 },
+      style: { opacity: 1, zIndex: 1, ...config.style },
       effects: [],
       name: config.name ?? (isImage ? '图片片段' : '视频片段')
     };
@@ -181,7 +188,7 @@ export class ClipFactory {
       duration: config.duration ?? 5,
       offset: 0,
       transform: createTransform(config.transform),
-      style: { opacity: 1, zIndex: 1 },
+      style: { opacity: 1, zIndex: 1, ...config.style },
       templateData: {
         templateId: config.templateId,
         params: config.templateParams ?? {}

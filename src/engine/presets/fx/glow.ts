@@ -3,29 +3,29 @@ import { dampedOscillation } from '../../utils/easing';
 
 export const glow: PresetDefinition = {
   id: 'fx_glow',
-  name: '发光效果 (Glow)',
+  name: '霓虹辉光 (Neon Glow)',
+  description: '持续霓虹辉光脉冲，增强材质发光感',
   category: 'fx',
+  quality: 'viral',
+  mood: 'mysterious',
+  material: 'neon',
+  dimensions: { materialOptics: true, physicsMotion: false, spatialDepth: true, styleEmotion: true },
+  physics: ['dampedOscillation'],
   schema: [
-    { key: 'color', label: '颜色', type: 'color', default: '#00ffff' },
-    { key: 'intensity', label: '强度', type: 'number', default: 20, min: 0, max: 100, step: 5 },
-    { key: 'pulse', label: '脉冲', type: 'boolean', default: true }
+    { key: 'glowColor', label: '发光色', type: 'color', default: '#00f0ff' },
+    { key: 'intensity', label: '强度', type: 'number', default: 20, min: 0, max: 80, step: 1 },
   ],
   apply: (progress, params, currentTransform) => {
-    const intensity = Math.max(0, Math.min(100, params.intensity || 20));
-    const color = params.color || '#00ffff';
-    const pulse = params.pulse !== false;
-    const p = Math.max(0, Math.min(1, progress));
+    const glowColor = params.glowColor || '#00f0ff';
+    const intensity = Math.max(0, Math.min(80, params.intensity || 20));
+    const t = Math.max(0, Math.min(1, progress));
 
-    const pulseFactor = pulse
-      ? 1 + dampedOscillation(p, 4, 0.05) * 0.3
-      : 1;
-
-    const glowIntensity = intensity * pulseFactor;
+    const pulse = Math.sin(t * Math.PI * 4) * 0.3 + 0.7;
 
     return {
       transform: currentTransform,
       opacity: 1,
-      filter: `drop-shadow(0 0 ${glowIntensity}px ${color}) drop-shadow(0 0 ${glowIntensity * 0.5}px ${color})`
+      filter: `drop-shadow(0 0 ${intensity * pulse}px ${glowColor}) drop-shadow(0 0 ${intensity * 2 * pulse}px ${glowColor}66) brightness(1.1)`
     };
   }
 };

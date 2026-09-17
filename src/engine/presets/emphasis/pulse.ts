@@ -3,28 +3,33 @@ import { dampedOscillation } from '../../utils/easing';
 
 export const pulse: PresetDefinition = {
   id: 'emphasis_pulse',
-  name: '心跳脉冲 (Pulse)',
+  name: '霓虹脉冲 (Neon Pulse)',
+  description: '带阻尼衰减的心脏跳动式脉冲',
   category: 'emphasis',
+  quality: 'viral',
+  mood: 'excitement',
+  material: 'neon',
+  dimensions: { materialOptics: true, physicsMotion: true, spatialDepth: true, styleEmotion: true },
+  physics: ['dampedOscillation'],
   schema: [
-    { key: 'speed', label: '速度', type: 'number', default: 2, min: 0.5, max: 5, step: 0.1 },
-    { key: 'strength', label: '强度', type: 'number', default: 0.1, min: 0.02, max: 0.3, step: 0.01 }
+    { key: 'glowColor', label: '发光色', type: 'color', default: '#ff00a0' },
+    { key: 'intensity', label: '强度', type: 'number', default: 0.12, min: 0, max: 0.4, step: 0.01 },
   ],
   apply: (progress, params, currentTransform) => {
-    const speed = Math.max(0.5, Math.min(5, params.speed || 2));
-    const strength = Math.max(0.02, Math.min(0.3, params.strength || 0.1));
-    const p = Math.max(0, Math.min(1, progress));
+    const glowColor = params.glowColor || '#ff00a0';
+    const intensity = Math.max(0, Math.min(0.4, params.intensity || 0.12));
+    const t = Math.max(0, Math.min(1, progress));
 
-    const frequency = speed * 1.5 + 2;
-    const dampingRatio = 0.25;
-    const oscillation = dampedOscillation(p, frequency, dampingRatio);
-    const scaleDelta = 1 + oscillation * strength * 2;
+    const beat = Math.abs(dampedOscillation(t, 2, 0.35)) * intensity;
+    const scale = 1 + beat;
 
     return {
       transform: {
         ...currentTransform,
-        scale: Math.max(0.001, currentTransform.scale * scaleDelta)
+        scale: Math.max(0.001, currentTransform.scale * scale),
       },
-      opacity: 1
+      opacity: 1,
+      filter: `drop-shadow(0 0 ${20 + beat * 200}px ${glowColor}) drop-shadow(0 0 ${40 + beat * 300}px ${glowColor}88)`
     };
   }
 };

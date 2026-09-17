@@ -3,24 +3,24 @@ import { PresetDefinition } from './types';
 // 导入所有预设
 import * as entrance from './entrance';
 import * as exit from './exit';
-import * as transition from './transition';
 import * as text from './text';
 import * as emphasis from './emphasis';
 import * as motion from './motion';
 import * as fx from './fx';
+import * as transition from './transition';
 
 // 收集所有预设
 const collectPresets = (): Record<string, PresetDefinition> => {
   const presets: Record<string, PresetDefinition> = {};
-  
+
   const modules = [
     entrance,
     exit,
-    transition,
     text,
     emphasis,
     motion,
-    fx
+    fx,
+    transition
   ];
   
   modules.forEach(module => {
@@ -62,7 +62,6 @@ export const getPresetCategories = (): { key: string; name: string }[] => {
   return [
     { key: 'entrance', name: '进场动画 (Entrance)' },
     { key: 'exit', name: '出场动画 (Exit)' },
-    { key: 'transition', name: '转场动画 (Transition)' },
     { key: 'text', name: '文本动画 (Text FX)' },
     { key: 'emphasis', name: '强调动画 (Emphasis)' },
     { key: 'motion', name: '移位动画 (Motion)' },

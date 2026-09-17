@@ -6,6 +6,7 @@ import type { AgentResult, AgentContext, WorkingMemory } from '../modules/ai-dir
 import { toolSystem } from '../modules/ai-director/core/ToolSystem';
 import { projectAdapter } from '../modules/ai-director/adapters/ProjectAdapter';
 import { ClipFactory } from '../modules/clip/ClipTypes';
+import { videoExporter } from '../services/videoExporter';
 
 import './tools-init';
 
@@ -540,6 +541,9 @@ if (typeof window !== 'undefined') {
     run: runTest,
     runAll: runAllTests,
     cases: TEST_CASES,
+    projectAdapter,
+    toolSystem,
+    videoExporter,
   };
   console.log('💡 AI测试工具已就绪！在控制台中运行:');
   console.log('  __aiTest.quick()       - 快速模拟测试（不需要API）');

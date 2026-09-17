@@ -1,12 +1,6 @@
 export {
-  elasticButtonTemplate,
-  cardFlipTemplate,
-  card3DTemplate,
-  spotlightCardTemplate,
-  borderGlowTemplate,
-  magnetButtonTemplate,
   glassCardTemplate,
-  cardStackTemplate,
-  accordionTemplate,
-  tabsTemplate,
+  metalButtonTemplate,
+  hologramFrameTemplate,
+  carbonPanelTemplate,
 } from '../../../../engine/templates';

@@ -10,69 +10,36 @@ function adaptLegacyPreset(legacyPreset: PresetDefinition, renderMode: EffectRen
 }
 
 export {
-  grayscale,
-  blur,
   glow,
-  brightness,
-  hueRotate,
-  saturate,
-  contrast,
-  glassmorphism,
-  glitch,
-  glitchCyber,
   neon,
-  neonPulse,
+  chromaticBurst,
+  crtFlicker,
   scanline,
+  glitchCyber,
   glowPulse,
-  glowRainbow,
-  blurIn,
-  blurOut,
-  shadow,
-  shadowLift
+  hueRotate
 } from '../../../../engine/presets/fx';
 
 import {
-  grayscale,
-  blur,
   glow,
-  brightness,
-  hueRotate,
-  saturate,
-  contrast,
-  glassmorphism,
-  glitch,
-  glitchCyber,
   neon,
-  neonPulse,
+  chromaticBurst,
+  crtFlicker,
   scanline,
+  glitchCyber,
   glowPulse,
-  glowRainbow,
-  blurIn,
-  blurOut,
-  shadow,
-  shadowLift
+  hueRotate
 } from '../../../../engine/presets/fx';
 
 export const fxPresets: AnimationEffect[] = [
-  adaptLegacyPreset(grayscale),
-  adaptLegacyPreset(blur),
   adaptLegacyPreset(glow),
-  adaptLegacyPreset(brightness),
-  adaptLegacyPreset(hueRotate),
-  adaptLegacyPreset(saturate),
-  adaptLegacyPreset(contrast),
-  adaptLegacyPreset(glassmorphism),
-  adaptLegacyPreset(glitch),
-  adaptLegacyPreset(glitchCyber),
   adaptLegacyPreset(neon),
-  adaptLegacyPreset(neonPulse),
+  adaptLegacyPreset(chromaticBurst),
+  adaptLegacyPreset(crtFlicker),
   adaptLegacyPreset(scanline),
+  adaptLegacyPreset(glitchCyber),
   adaptLegacyPreset(glowPulse),
-  adaptLegacyPreset(glowRainbow),
-  adaptLegacyPreset(blurIn),
-  adaptLegacyPreset(blurOut),
-  adaptLegacyPreset(shadow),
-  adaptLegacyPreset(shadowLift)
+  adaptLegacyPreset(hueRotate)
 ];
 
 export default fxPresets;

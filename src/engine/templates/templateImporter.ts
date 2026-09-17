@@ -243,7 +243,7 @@ const validateParamSchema = (param: any): { valid: boolean; error?: string } => 
  * 检查是否是有效的模板分类
  */
 const isValidCategory = (category: string): category is TemplateCategory => {
-  const validCategories: TemplateCategory[] = ['ui', 'code', 'text', 'effect', 'transition', 'other'];
+  const validCategories: TemplateCategory[] = ['ui', 'code', 'text', 'effect', 'other'];
   return validCategories.includes(category as TemplateCategory);
 };
 

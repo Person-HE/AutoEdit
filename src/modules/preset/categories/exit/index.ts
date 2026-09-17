@@ -10,42 +10,42 @@ function adaptLegacyPreset(legacyPreset: PresetDefinition, renderMode: EffectRen
 }
 
 export {
-  zoomOut,
-  zoomOutUp,
-  slideOutRight,
-  slideOutLeft,
-  slideOutUp,
-  slideOutDown,
   fadeOut,
   fadeOutUp,
   fadeOutDown,
-  bounceOut
+  zoomOut,
+  slideOutDown,
+  slideOutUp,
+  slideOutLeft,
+  slideOutRight,
+  bounceOut,
+  glitchOut
 } from '../../../../engine/presets/exit';
 
 import {
-  zoomOut,
-  zoomOutUp,
-  slideOutRight,
-  slideOutLeft,
-  slideOutUp,
-  slideOutDown,
   fadeOut,
   fadeOutUp,
   fadeOutDown,
-  bounceOut
+  zoomOut,
+  slideOutDown,
+  slideOutUp,
+  slideOutLeft,
+  slideOutRight,
+  bounceOut,
+  glitchOut
 } from '../../../../engine/presets/exit';
 
 export const exitPresets: AnimationEffect[] = [
-  adaptLegacyPreset(zoomOut),
-  adaptLegacyPreset(zoomOutUp),
-  adaptLegacyPreset(slideOutRight),
-  adaptLegacyPreset(slideOutLeft),
-  adaptLegacyPreset(slideOutUp),
-  adaptLegacyPreset(slideOutDown),
   adaptLegacyPreset(fadeOut),
   adaptLegacyPreset(fadeOutUp),
   adaptLegacyPreset(fadeOutDown),
-  adaptLegacyPreset(bounceOut)
+  adaptLegacyPreset(zoomOut),
+  adaptLegacyPreset(slideOutDown),
+  adaptLegacyPreset(slideOutUp),
+  adaptLegacyPreset(slideOutLeft),
+  adaptLegacyPreset(slideOutRight),
+  adaptLegacyPreset(bounceOut),
+  adaptLegacyPreset(glitchOut)
 ];
 
 export default exitPresets;

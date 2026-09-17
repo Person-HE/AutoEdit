@@ -113,7 +113,7 @@ class IndexTTSService {
    */
   async generateVoice(
     text: string,
-    referenceAudioFile: File,
+    referenceAudioFile?: File,
     config: Partial<TTSConfig> = {}
   ): Promise<TTSResult> {
     const finalConfig = { ...DEFAULT_TTS_CONFIG, ...config };

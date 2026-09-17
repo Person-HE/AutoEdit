@@ -79,8 +79,10 @@ const STAGE_LABELS: Record<RenderProgress['stage'], string> = {
 };
 
 export const ExportModal: React.FC = () => {
-  const { isExportModalOpen, setIsExportModalOpen } = useUIStore();
-  const { project, assets } = useProjectStore();
+  const isExportModalOpen = useUIStore((s) => s.isExportModalOpen);
+  const setIsExportModalOpen = useUIStore((s) => s.setIsExportModalOpen);
+  const project = useProjectStore((s) => s.project);
+  const assets = useProjectStore((s) => s.assets);
 
   const [fileName, setFileName] = useState('');
   const [resolution, setResolution] = useState<ResolutionPreset>('1080p');
@@ -201,8 +203,17 @@ export const ExportModal: React.FC = () => {
     setStageMessage('');
   };
 
+
   const handleExportWithNewRenderer = async () => {
     if (!project) return;
+
+    // 导出前确保项目已保存到本地存储：新开的无头浏览器页面将从 IndexedDB 恢复项目
+    try {
+      const { projectService } = await import('../../services/projectService');
+      await projectService.saveProject(project, assets);
+    } catch (e) {
+      console.warn('[Export] 导出前保存失败，继续使用当前页面状态:', e);
+    }
 
     setIsExporting(true);
     setProgress(0);

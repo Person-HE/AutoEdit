@@ -1,35 +1,38 @@
 import { PresetDefinition } from '../types';
-import { momentumEase, easeInExpo, dampedOscillation } from '../../utils/easing';
+import { easeInExpo } from '../../utils/easing';
 
 export const slideOutLeft: PresetDefinition = {
   id: 'exit_slide_out_left',
-  name: '左滑出 (Slide Out Left)',
+  name: '惯性左出 (Inertia Slide Left)',
+  description: '带拖尾的向左惯性退出',
   category: 'exit',
+  quality: 'viral',
+  mood: 'urgency',
+  material: 'neon',
+  dimensions: { materialOptics: true, physicsMotion: true, spatialDepth: true, styleEmotion: true },
+  physics: ['easeInExpo'],
   schema: [
-    {
-      key: 'distance',
-      label: '滑出距离',
-      type: 'number',
-      default: 200,
-      min: 50,
-      max: 500,
-      step: 50
-    }
+    { key: 'distance', label: '距离', type: 'number', default: 600, min: 100, max: 2000 },
+    { key: 'glowColor', label: '拖尾色', type: 'color', default: '#a855f7' },
   ],
   apply: (progress, params, currentTransform) => {
+    const distance = Math.max(100, Math.min(2000, params.distance || 600));
+    const glowColor = params.glowColor || '#a855f7';
     const t = Math.max(0, Math.min(1, progress));
-    const distance = Math.max(50, Math.min(500, params.distance || 200));
-    const moveEased = momentumEase(t, 1, 0.3);
-    const opacityEased = easeInExpo(t);
-    const wobble = dampedOscillation(t, 3, 0.4) * 1.5 * (1 - t);
+
+    const ease = easeInExpo(t);
+    const x = -distance * ease;
+    const opacity = 1 - ease;
 
     return {
       transform: {
         ...currentTransform,
-        x: currentTransform.x - distance * moveEased,
-        rotation: currentTransform.rotation + wobble
+        x: currentTransform.x + x,
+        rotateY: (currentTransform.rotateY || 0) - t * 30,
+        scale: Math.max(0.001, currentTransform.scale * (1 - t * 0.1)),
       },
-      opacity: Math.max(0.01, 1 - opacityEased)
+      opacity: Math.max(0, opacity),
+      filter: `drop-shadow(${distance * 0.02 * t}px 0 20px ${glowColor}66) drop-shadow(0 0 10px ${glowColor})`
     };
   }
 };

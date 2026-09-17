@@ -57,6 +57,8 @@ export interface ToolCallInfo {
 
 export interface WorkingMemory {
   analysis?: any;
+  contentDesign?: any;
+  viralCheck?: any;
   shotData?: any;
   textLines?: any[];
   imagePrompts?: any[];

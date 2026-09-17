@@ -1,28 +1,34 @@
 import { PresetDefinition } from '../types';
-import { perlinNoise1D } from '../../utils/easing';
+import { dampedOscillation } from '../../utils/easing';
 
 export const floatY: PresetDefinition = {
-  id: 'motion_floatY',
-  name: 'Y轴悬浮 (FloatY)',
+  id: 'motion_float_y',
+  name: '垂直漂浮 (Vertical Float)',
+  description: '带正弦波阻尼的轻柔上下漂浮',
   category: 'motion',
+  quality: 'viral',
+  mood: 'calm',
+  material: 'glass',
+  dimensions: { materialOptics: true, physicsMotion: true, spatialDepth: true, styleEmotion: true },
+  physics: ['dampedOscillation'],
   schema: [
-    { key: 'range', label: '范围', type: 'number', default: 30, min: 5, max: 100, step: 5 },
-    { key: 'speed', label: '速度', type: 'number', default: 1, min: 0.1, max: 3, step: 0.1 }
+    { key: 'amplitude', label: '振幅', type: 'number', default: 25, min: 0, max: 120 },
+    { key: 'frequency', label: '频率', type: 'number', default: 2, min: 0.5, max: 6, step: 0.1 },
   ],
   apply: (progress, params, currentTransform) => {
-    const range = Math.max(5, Math.min(100, params.range || 30));
-    const speed = Math.max(0.1, Math.min(3, params.speed || 1));
-    const p = Math.max(0, Math.min(1, progress));
+    const amplitude = Math.max(0, Math.min(120, params.amplitude || 25));
+    const frequency = Math.max(0.5, Math.min(6, params.frequency || 2));
+    const t = Math.max(0, Math.min(1, progress));
 
-    const noiseY = perlinNoise1D(p, speed * 3, 0) * 2 - 1;
-    const yOffset = noiseY * range;
+    const y = dampedOscillation(t, frequency, 0.05) * amplitude;
 
     return {
       transform: {
         ...currentTransform,
-        y: currentTransform.y + yOffset
+        y: currentTransform.y + y,
       },
-      opacity: 1
+      opacity: 1,
+      filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))'
     };
   }
 };

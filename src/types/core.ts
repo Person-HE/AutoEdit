@@ -16,6 +16,11 @@ export type {
   Track,
   Project,
   UIState,
+  KeyframeEasing,
+  KeyframeChannel,
+  Keyframe,
+  ColorGrading,
+  SpeedPoint,
 } from '../modules/shared/types';
 
 // 画板类型定义 (这些类型是 core.ts 独有的，保留在此)

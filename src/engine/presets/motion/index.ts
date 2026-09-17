@@ -1,6 +1,7 @@
 export { float } from './float';
 export { floatX } from './floatX';
 export { floatY } from './floatY';
+export { parallaxFloat } from './parallaxFloat';
 export { orbit } from './orbit';
 export { orbitSlow } from './orbitSlow';
 export { bounce } from './bounce';

@@ -1,36 +1,6 @@
-import { AnimationEffect, EffectRenderMode } from '../../PresetTypes';
-import type { PresetDefinition } from '../../../../engine/presets/types';
+import { AnimationEffect } from '../../PresetTypes';
 
-function adaptLegacyPreset(legacyPreset: PresetDefinition, renderMode: EffectRenderMode = EffectRenderMode.CANVAS_2D): AnimationEffect {
-  return {
-    ...legacyPreset,
-    renderMode,
-    gpuSafeProps: legacyPreset.schema.map(param => param.key)
-  };
-}
-
-export {
-  wipeRight,
-  wipeLeft,
-  crossDissolve,
-  pageFlip,
-  cubeRotate
-} from '../../../../engine/presets/transition';
-
-import {
-  wipeRight,
-  wipeLeft,
-  crossDissolve,
-  pageFlip,
-  cubeRotate
-} from '../../../../engine/presets/transition';
-
-export const transitionPresets: AnimationEffect[] = [
-  adaptLegacyPreset(wipeRight),
-  adaptLegacyPreset(wipeLeft),
-  adaptLegacyPreset(crossDissolve),
-  adaptLegacyPreset(pageFlip),
-  adaptLegacyPreset(cubeRotate)
-];
+// 转场预设已移除：系统性重写后，非病毒式转场效果不再提供
+export const transitionPresets: AnimationEffect[] = [];
 
 export default transitionPresets;

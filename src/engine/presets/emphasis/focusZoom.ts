@@ -1,30 +1,33 @@
 import { PresetDefinition } from '../types';
-import { spring } from '../../utils/easing';
+import { spring, easeOutExpo } from '../../utils/easing';
 
 export const focusZoom: PresetDefinition = {
   id: 'emphasis_focus_zoom',
-  name: '聚焦缩放 (Focus Zoom)',
+  name: '焦点聚焦 (Focus Zoom)',
+  description: '快速聚焦放大后稳定，引导视觉重心',
   category: 'emphasis',
+  quality: 'viral',
+  mood: 'tension',
+  material: 'metal',
+  dimensions: { materialOptics: true, physicsMotion: true, spatialDepth: true, styleEmotion: true },
+  physics: ['spring', 'easeOutExpo'],
   schema: [
-    { key: 'scale', label: '缩放幅度', type: 'number', default: 0.2, min: 0.05, max: 0.5, step: 0.05 },
-    { key: 'speed', label: '速度', type: 'number', default: 1, min: 0.5, max: 3, step: 0.1 }
+    { key: 'glowColor', label: '发光色', type: 'color', default: '#ff0055' },
   ],
   apply: (progress, params, currentTransform) => {
-    const scaleAmount = Math.max(0.05, Math.min(0.5, params.scale || 0.2));
-    const speed = Math.max(0.5, Math.min(3, params.speed || 1));
-    const p = Math.max(0, Math.min(1, progress));
+    const glowColor = params.glowColor || '#ff0055';
+    const t = Math.max(0, Math.min(1, progress));
 
-    const stiffness = 120 + speed * 80;
-    const damping = 10 + speed * 4;
-    const springVal = spring(p, stiffness, damping, 1);
-    const scaleDelta = 1 + scaleAmount * (1 - springVal);
+    const springValue = spring(t, 180, 14, 1);
+    const scale = 1 + springValue * 0.18;
 
     return {
       transform: {
         ...currentTransform,
-        scale: Math.max(0.001, currentTransform.scale * scaleDelta)
+        scale: Math.max(0.001, currentTransform.scale * scale),
       },
-      opacity: 1
+      opacity: 1,
+      filter: `drop-shadow(0 0 15px ${glowColor}) drop-shadow(0 0 40px ${glowColor}88) brightness(1 + ${springValue * 0.15})`
     };
   }
 };

@@ -83,9 +83,13 @@ export const projectService = {
     return projectService.saveProject(project, assets);
   },
 
-  // 启动自动保存
-  startAutoSave: (project: Project, assets: any[], callback?: () => void): void => {
-    fileStorage.startAutoSave(project, assets, callback);
+  // 自动保存：getter 形式，每次保存读取最新状态（避免启动时快照过期）
+  startAutoSave: (
+    getProject: () => Project | null,
+    getAssets: () => any[],
+    callback?: () => void
+  ): void => {
+    fileStorage.startAutoSave(getProject, getAssets, callback);
   },
 
   // 停止自动保存

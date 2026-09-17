@@ -1,35 +1,37 @@
 import { PresetDefinition } from '../types';
-import { gravityBounce, easeInExpo, dampedOscillation } from '../../utils/easing';
+import { easeInExpo } from '../../utils/easing';
 
 export const fadeOutDown: PresetDefinition = {
   id: 'exit_fade_out_down',
-  name: '向下淡出 (Fade Out Down)',
+  name: '下沉淡出 (Fade Out Down)',
+  description: '向下沉降并淡出，带重量感',
   category: 'exit',
+  quality: 'viral',
+  mood: 'tension',
+  material: 'metal',
+  dimensions: { materialOptics: true, physicsMotion: true, spatialDepth: true, styleEmotion: true },
+  physics: ['easeInExpo'],
   schema: [
-    {
-      key: 'distance',
-      label: '下移距离',
-      type: 'number',
-      default: 50,
-      min: 10,
-      max: 200,
-      step: 10
-    }
+    { key: 'distance', label: '距离', type: 'number', default: 160, min: 0, max: 800 },
+    { key: 'glowColor', label: '发光色', type: 'color', default: '#ff0055' },
   ],
   apply: (progress, params, currentTransform) => {
+    const distance = Math.max(0, Math.min(800, params.distance || 160));
+    const glowColor = params.glowColor || '#ff0055';
     const t = Math.max(0, Math.min(1, progress));
-    const distance = Math.max(10, Math.min(200, params.distance || 50));
-    const moveEased = gravityBounce(t, 0.3, 15);
-    const opacityEased = easeInExpo(t);
-    const wobble = dampedOscillation(t, 2.5, 0.35) * 2 * (1 - t);
+
+    const ease = easeInExpo(t);
+    const y = distance * ease;
+    const opacity = 1 - ease;
 
     return {
       transform: {
         ...currentTransform,
-        y: currentTransform.y + distance * moveEased,
-        rotation: currentTransform.rotation + wobble
+        y: currentTransform.y + y,
+        scale: Math.max(0.001, currentTransform.scale * (1 - t * 0.15)),
       },
-      opacity: Math.max(0.01, 1 - opacityEased)
+      opacity: Math.max(0, opacity),
+      filter: `drop-shadow(0 -${distance * 0.05 * t}px 20px ${glowColor}66)`
     };
   }
 };
