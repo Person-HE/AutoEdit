@@ -1,127 +1,99 @@
-# NanoEdit Pro (AutoEdit) — 浏览器端 AI 视频剪辑工具
+# NanoEdit Pro (AutoEdit)
 
-对标 Premiere Pro / 剪映 的工作流：多轨时间线、预设动效库、转场、关键帧、真实视频解码预览、WebAudio 混音，以及独立的**全屏 AI 导演**界面（ReAct 智能体直接操作当前项目）。
+**A browser video editor with a ReAct AI director. Timeline, presets, keyframes and export — no upload, no server round-trip.**
 
-## 技术栈
+[![Live demo](https://img.shields.io/badge/Live%20demo-nanoedit--pro.pages.dev-2f7cf6?style=flat-square)](https://nanoedit-pro.pages.dev)
+![Tests](https://img.shields.io/badge/tests-Jest-brightgreen?style=flat-square)
+![Presets](https://img.shields.io/badge/presets-95-1a7f37?style=flat-square)
+![Framework](https://img.shields.io/badge/React%2019%20%C2%B7%20Vite%206-blueviolet?style=flat-square)
 
-- **框架**: React 19 + TypeScript + Vite
-- **状态**: Zustand（细粒度 selector 订阅）
-- **持久化**: IndexedDB（Dexie）+ 防抖自动保存；导出兜底 File System Access API
-- **音频**: WebAudio（per-clip 增益/变速/淡入淡出）
-- **导出**: 本地 Puppeteer+FFmpeg 管线（`modules/renderer`），浏览器内 MediaRecorder 兜底
+Multi-track timeline editing that runs client-side: 95 animated presets, 9 transitions, per-property keyframes, a WebAudio graph, MediaPipe segmentation for cut-out work, and an **AI Director** that plans a video from a one-line brief by calling its own tools.
 
-## 快速开始
+**→ [nanoedit-pro.pages.dev](https://nanoedit-pro.pages.dev)**
+
+## The two halves
+
+**Editor** — tracks, clips, transforms, opacity/scale/position keyframes, text, stickers, LUT grading, spatial curves, audio gain and fades. State lives in `Dexie`/IndexedDB, so a project survives a refresh without an account.
+
+**AI Director** — a ReAct loop over a tool registry (`analyze topic → write copy → build shot list → place presets → time to audio → render`). It is agent-directed rather than prompt-to-magic: every step is an inspectable tool call against the same project model the manual UI edits, so you can open the timeline after a director run and see what it actually did.
+
+## Measured, not claimed
+
+`npm run metrics` rebuilds, runs the test suite, walks the output and writes `docs/metrics.json` — including the machine the numbers came from.
+
+| Metric | Value |
+| --- | --- |
+| Clean build | 7.7 s |
+| Jest suite results | 71 passed · 4 skipped · 75 total · 0 failed (6 suites, 32.1 s) |
+| Presets / template files | 95 / 28 (`node scripts/count-assets.mjs`) |
+| Build output | 8 files · 34.93 MB raw · 20.33 MB gzip |
+| Application JS | 911 KB raw (rest is MediaPipe models) |
+| Source | 314 files · 43,616 lines |
+| Direct dependencies | 30 |
+
+Live behaviour, cold cache, real browser, deployed site:
+
+| Metric | Value |
+| --- | --- |
+| TTFB | 868 ms |
+| `load` event | 2.33 s |
+| First-page transfer | ~269 KB |
+
+## Try it in the browser
+
+The hosted build is fully client-side and ships a **mock AI mode**, so the director loop is explorable without any key. To drive it with a real model, open the AI settings panel and point it at any OpenAI-compatible endpoint with your own key — nothing is sent to this project's author, because there is no such server.
+
+Two things cannot work in a hosted, browser-only deployment, by design:
+
+- **Local FFmpeg export.** The frame-accurate MP4 path spawns Puppeteer + FFmpeg on Node. In the browser, export produces the web formats available in-page.
+- **The `/api/nvidia` and ComfyUI proxies.** Those are Vite dev-server proxies to a local ComfyUI on `127.0.0.1:7860`; a static host has nowhere to forward them.
+
+## Running it
 
 ```bash
 npm install
-npm run dev        # 开发
-npm run build      # 生产构建
-npm test           # jest 单测（放置/吸附/撤销/分割/关键帧求值等）
+npm run dev        # http://localhost:5173 — dev server also proxies local ComfyUI
+npm test           # Jest (ts-jest ESM + jsdom)
+npm run build
+npm run metrics    # docs/metrics.json + docs/metrics.md
 ```
 
-## 功能矩阵
+For local rendering, export API keys through the environment rather than editing
+them into scripts: `AGNES_API_KEY` for the helper scripts under `scripts/`, and the
+in-app AI settings panel for editor/director usage.
 
-### 剪辑核心（快捷键）
-
-| 操作 | 快捷键 | 说明 |
-|---|---|---|
-| 播放/暂停 | `Space` | |
-| 逐帧 / 逐秒 | `←` `→` / `Shift+←→` | |
-| 分割 | `S` | 有选中切选中片段；否则切所有跨播放头片段（文本↔配音联动同切） |
-| 删除 / 波纹删除 | `Del` / `Shift+Del` | 波纹删除后同一轨道后续片段自动前移补位 |
-| 复制 / 粘贴 / 副本 | `Ctrl+C/V/D` | 落点自动防重叠让位 |
-| 撤销 / 重做 | `Ctrl+Z` / `Ctrl+Shift+Z` 或 `Ctrl+Y` | 100 步历史；拖拽/修剪手势整体为一步 |
-| 缩放时间线 | `+` `-` 或滑杆 | |
-
-**同轨防重叠（剪映式）**：移动、修剪、粘贴、新增全部经过布局引擎——磁吸吸附（片段首尾/播放头/零点，红色参考线）+ 就近空隙让位。修剪受左右邻居与素材源时长双重钳制。
-
-### 效果系统
-
-- **预设动效库**：入场 / 出场 / 强调 / 运动 / 滤镜 fx / 文本（90+），进度函数式驱动预览与导出一致。
-- **转场**（9 种）：交叉溶解、黑场/白场过渡、四向划像、滑动、缩放溶解、模糊溶解、故障闪烁。
-  - 应用方式：时间线相邻切点上点击转场方块 → 选择效果 + 时长滑杆；或属性面板 Effects 区编辑。
-- **关键帧动画**：X/Y/缩放/旋转/不透明度五通道。
-  - 属性行菱形按钮按当前播放头打帧，缓动可选（线性/缓入/缓出/缓入出/定格）；列表可改值、跳转、删除。
-
-### 音频
-
-- 时间线波形（导入时自动抽取峰值）、淡入淡出斜线可视化
-- 片段级音量(0–200%)与变速(0.25×–4×)；变速联动时长换算并受邻居钳制
-
-### 性能设计
-
-- 播放头/时间码通过订阅式小组件直接写 DOM，主视图不逐帧重渲染
-- 效果求值结果按 fps 量化缓存；素材 Map 索引；可见片段排序缓存+二分
-- 时间线视口窗口化渲染；模板 canvas 按显示尺寸×DPR 降采样绘制
-- AudioEngine 单遍扫描 + 漂移阈值重建；保存走变更防抖(2s)+30s 兜底，读取实时状态
-
-## AI 导演（独立全屏页）
-
-入口：顶部导航「AI 导演模式」或编辑器左侧栏「🎬 AI导演」。`#/director`
-
-- ReAct 智能体（~25 个工具）：分析素材 → 规划分镜 → 创建轨道/片段/模板 → 应用预设 → 执行导出
-- 会话式追问修改（"加大标题"）、内置无 API 模拟测试
-- 三栏：会话控制台 / 执行活动流 / 实时项目大纲；右上配置 OpenAI 兼容服务商（运行时切换）
-
-## 目录速览
+## Layout
 
 ```
 src/
-├─ engine/            # 预设动效(presets)、转场、模板、关键帧求值器、音频引擎与峰值提取
-├─ modules/
-│  ├─ timeline/       # 布局引擎: 吸附/防重叠落位/修剪钳制(纯函数,含单测)
-│  ├─ clip|track|asset/# ClipManager / 轨道与素材管理
-│  ├─ ai-director/    # ReAct Agent: planner/tools/memory/AIService/ProjectAdapter
-│  └─ renderer/       # Puppeteer+FFmpeg 导出管线(本地)
-├─ store/             # useProjectStore(含 undo/redo 历史)/useUIStore/usePlayerStore/useAppRouter
-├─ components/        # Timeline / PreviewPlayer(+video 真实解码层) / 属性面板 / AI导演组件
-└─ pages/             # EditorPage / AIDirectorPage(全屏)
+  engine/          timeline, keyframes, mask/segmentation, template + preset system
+  modules/ai-director/   ReAct loop, tool registry, AI service
+  components/      timeline UI, overlays, export modal
+  __tests__/       Jest suites (integration, placement, grading, store, keyframes)
+scripts/           asset counters, local render helpers, metrics collector
+public/mediapipe/  segmentation models + wasm
 ```
 
-## 说明与约定
+Design docs (Chinese) are in the repo root and are worth reading before extending the
+preset or template system: `PRESET_DEVELOPMENT_GUIDE.md`, `TEMPLATE_DEVELOPMENT_GUIDE.md`,
+`AI_DIRECTOR_DEVELOPMENT_GUIDE.md`.
 
-- 撤销范围 = 项目数据（片段/轨道/参数）；素材导入不在历史内。
-- 连续手势（拖动、修剪、滑杆）以 `markHistory()` 在起点打一次快照构成单步撤销。
-- 视频片段声音统一由 AudioEngine 调度；预览 `<video>` 一律 muted 避免双声。
-- 导出需本机 FFmpeg 在 PATH 中；浏览器兜底导出输出 WebM。
+## Honest gaps
 
-## 量化数据（可复现）
+- **34.93 MB of build output**, 33.6 MB of which is MediaPipe models and WASM. First paint is fast; segmentation is not, until cached.
+- **Coverage is unknown.** Jest runs with no coverage instrumentation configured, so no percentage is claimed here. Four FFmpeg-dependent cases are skipped by design.
+- **UI is Chinese-first.**
+- The deployed site is a single-page bundle with no code-splitting of the model assets.
 
-采集环境：**Windows 11 · Node.js v24.12.0 · npm 11.6.2**  
-采集日期：**2026-09-17**  
-复现命令：
+## 中文说明
 
-```bash
-npm ci
-npm test
-npm run build
-node scripts/count-assets.mjs
-Get-ChildItem dist -Recurse -File | Measure-Object Length -Sum
-```
+NanoEdit Pro（仓库名 AutoEdit）是一个**纯浏览器端**的视频编辑器：多轨时间线、95 个动效预设、9 种转场、逐属性关键帧、WebAudio、MediaPipe 抠像，以及一个基于 ReAct 的 **AI 导演**——它把"一句话需求"拆解为选题分析 → 文案 → 分镜 → 预设摆放 → 音画对齐 → 渲染的可检查步骤，每一步都是与手工编辑完全相同的工具调用。
 
-| 指标 | 数值 |
-|------|------|
-| Jest 测试 | **71 通过 / 4 跳过 / 75 总计**（跳过项为需要本机 FFmpeg 的 e2e 编码测试） |
-| 测试耗时 | **1.9 s** |
-| 预设动效数（`src/engine/presets` 实测） | **95**（7 类：entrance/exit/emphasis/motion/fx/text/transition） |
-| 模板源文件数 | **28** |
-| `vite build` 耗时 | **2.74 s** |
-| 主 JS chunk | **933.3 KB**（gzip **278.9 KB**） |
-| `dist/` 总体积 | **34.9 MB**（含 MediaPipe 人脸/手势模型与 WASM，按需加载） |
-| MediaPipe 最大资源 | `selfie_multiclass_256x256.tflite` 15.6 MB |
+- 在线体验：<https://nanoedit-pro.pages.dev>（内置 mock 模式，无需任何 key 即可观察导演流程；接入真实模型请在应用内 AI 设置里填你自己的端点与密钥）
+- 本地 FFmpeg 精确导出、ComfyUI 代理仅在本机 Node 环境可用，静态托管下不可用。
+- 数据复现：`npm run metrics`，结果与采集机器写入 `docs/metrics.json`。
+- 安全提醒：任何 API key 只应通过 `AGNES_API_KEY` 环境变量或应用内设置注入。本仓库历史中的明文密钥已于 2026-09-19 清除，**请务必在服务商后台吊销旧密钥**——GitHub 仍可能通过旧 commit SHA 访问到它们。
 
-## 部署到 Cloudflare Pages
+## License
 
-```bash
-npx wrangler login
-npm run build
-npx wrangler pages deploy dist --project-name=nanoedit-pro --branch=main
-```
-
-| 项 | 值 |
-|----|----|
-| Build command | `npm run build` |
-| Output directory | `dist` |
-| SPA fallback | `/* /index.html 200` |
-
-> 已附带 `vercel.json` / `netlify.toml` 作为备选平台配置；本仓库默认以 Cloudflare Pages 为准。
+All rights reserved.

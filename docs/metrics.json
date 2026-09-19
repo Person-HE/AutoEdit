@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-19T11:03:45.525Z",
+  "project": "nanoedit-pro",
+  "commands": {
+    "build": "npm run build",
+    "test": "npm test",
+    "metrics": "node scripts/metrics.mjs"
+  },
+  "environment": {
+    "platform": "Windows_NT 10.0.26200 (x64)",
+    "cpus": 16,
+    "cpuModel": "AMD Ryzen 7 7735H with Radeon Graphics",
+    "memoryGB": 15.2,
+    "node": "v24.12.0",
+    "npm": "11.6.2",
+    "timezone": "Asia/Shanghai"
+  },
+  "git": {
+    "commit": "6a841eb3c27d3c5211af1963edf2888e5540f591",
+    "shortCommit": "6a841eb",
+    "branch": "main",
+    "dirty": true
+  },
+  "build": {
+    "clean": true,
+    "durationMs": 7706,
+    "durationS": 7.7
+  },
+  "source": {
+    "roots": [
+      "src",
+      "scripts"
+    ],
+    "files": 314,
+    "totalLines": 43625,
+    "codeLines": 37284,
+    "commentLines": 1245,
+    "blankLines": 5096,
+    "commentRatio": 2.9,
+    "byLanguage": {
+      "TypeScript": {
+        "files": 269,
+        "lines": 26990
+      },
+      "TypeScript (React)": {
+        "files": 30,
+        "lines": 8787
+      },
+      "JavaScript (ESM)": {
+        "files": 11,
+        "lines": 7303
+      },
+      "HTML": {
+        "files": 2,
+        "lines": 516
+      },
+      "Python": {
+        "files": 2,
+        "lines": 29
+      }
+    }
+  },
+  "bundle": {
+    "root": "dist",
+    "files": 8,
+    "rawBytes": 36625559,
+    "rawMB": 34.93,
+    "gzipBytes": 21319210,
+    "gzipMB": 20.33,
+    "compressionRatio": 58.2,
+    "largestFiles": [
+      {
+        "file": "mediapipe/models/selfie_multiclass_256x256.tflite",
+        "rawBytes": 16371837,
+        "gzipBytes": 15129239
+      },
+      {
+        "file": "mediapipe/wasm/vision_wasm_internal.wasm",
+        "rawBytes": 9514390,
+        "gzipBytes": 2904705
+      },
+      {
+        "file": "mediapipe/wasm/vision_wasm_nosimd_internal.wasm",
+        "rawBytes": 9379090,
+        "gzipBytes": 2899989
+      },
+      {
+        "file": "assets/index-CM-EFmay.js",
+        "rawBytes": 933284,
+        "gzipBytes": 278345
+      },
+      {
+        "file": "mediapipe/wasm/vision_wasm_internal.js",
+        "rawBytes": 203819,
+        "gzipBytes": 50113
+      }
+    ],
+    "byType": {
+      ".wasm": {
+        "files": 2,
+        "rawBytes": 18893480,
+        "gzipBytes": 5804694
+      },
+      ".tflite": {
+        "files": 1,
+        "rawBytes": 16371837,
+        "gzipBytes": 15129239
+      },
+      ".js": {
+        "files": 4,
+        "rawBytes": 1355062,
+        "gzipBytes": 383506
+      },
+      ".html": {
+        "files": 1,
+        "rawBytes": 5180,
+        "gzipBytes": 1771
+      }
+    },
+    "counts": {
+      "js": 4,
+      "css": 0,
+      "font": 0,
+      "wasm": 2,
+      "image": 0,
+      "html": 1
+    }
+  },
+  "tests": {
+    "configured": true,
+    "command": "npm test",
+    "exitCode": 0,
+    "passed": 71,
+    "failed": 0,
+    "skipped": 4,
+    "todo": 0,
+    "total": 75,
+    "suites": 6,
+    "durationMs": 32099,
+    "passRate": 94.7,
+    "rawSummary": "4 skipped, 71 passed, 75 total"
+  },
+  "dependencies": {
+    "runtime": 22,
+    "dev": 8,
+    "directTotal": 30
+  }
+}

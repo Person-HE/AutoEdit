@@ -29,6 +29,7 @@ output
 !package.json
 !tsconfig.json
 !*.config.json
+!docs/metrics.json
 
 # Build artifacts
 *.mp4
