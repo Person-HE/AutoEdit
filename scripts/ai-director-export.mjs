@@ -14,7 +14,7 @@ const projectRoot = path.resolve(__dirname, '..');
 const outputDir = path.join(projectRoot, 'output');
 
 //  Agnes AI 配置（从用户输入获取）
-const AGNES_API_KEY = '[REDACTED-AGNES-KEY-1]';
+const AGNES_API_KEY = process.env.AGNES_API_KEY ?? '';
 // 用户指定 Agnes-2.0-Flash 当前无可用渠道，实际可用模型为 agnes-1.5-flash
 const AGNES_MODEL = 'agnes-1.5-flash';
 const AGNES_ENDPOINT = '/api/agnes/v1/chat/completions';

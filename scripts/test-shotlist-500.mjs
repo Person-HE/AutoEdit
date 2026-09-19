@@ -1,5 +1,5 @@
 // 测试分镜表 prompt 是否会导致 500
-const API_KEY = '[REDACTED-AGNES-KEY-2]';
+const API_KEY = process.env.AGNES_API_KEY ?? '';
 const ENDPOINT = 'https://apihub.agnes-ai.com/v1/chat/completions';
 
 const duration = 30;
