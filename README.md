@@ -62,6 +62,12 @@ For local rendering, export API keys through the environment rather than editing
 them into scripts: `AGNES_API_KEY` for the helper scripts under `scripts/`, and the
 in-app AI settings panel for editor/director usage.
 
+> Early commits hardcoded vendor keys. Rewriting history was not enough on its own —
+> GitHub kept serving the removed commit by SHA — so this repository was deleted and
+> recreated on 2026-09-19 from the sanitized history; the old commit now returns 404.
+> Those keys were public for a period, so revoking them at the provider is still
+> mandatory. Verify with `git cat-file --batch-all-objects --batch | grep -c 'sk-'` → 0.
+
 ## Layout
 
 ```
@@ -92,7 +98,7 @@ NanoEdit Pro（仓库名 AutoEdit）是一个**纯浏览器端**的视频编辑�
 - 在线体验：<https://nanoedit-pro.pages.dev>（内置 mock 模式，无需任何 key 即可观察导演流程；接入真实模型请在应用内 AI 设置里填你自己的端点与密钥）
 - 本地 FFmpeg 精确导出、ComfyUI 代理仅在本机 Node 环境可用，静态托管下不可用。
 - 数据复现：`npm run metrics`，结果与采集机器写入 `docs/metrics.json`。
-- 安全提醒：任何 API key 只应通过 `AGNES_API_KEY` 环境变量或应用内设置注入。本仓库历史中的明文密钥已于 2026-09-19 清除，**请务必在服务商后台吊销旧密钥**——GitHub 仍可能通过旧 commit SHA 访问到它们。
+- 安全提醒：任何 API key 只应通过 `AGNES_API_KEY` 环境变量或应用内设置注入。历史改写后旧 commit 仍可通过 SHA 取回，因此本仓库已于 2026-09-19 删除并以净化后的历史重建，旧 commit 现在返回 404；**旧密钥仍必须在服务商后台吊销**，它们曾一度公开。
 
 ## License
 
